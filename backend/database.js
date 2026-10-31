@@ -15,8 +15,9 @@ const DB_PATH = process.env.DATABASE_PATH
   : path.join(DB_DIR, 'gharKhata.db');
 
 // Ensure database directory exists
-if (!fs.existsSync(DB_DIR)) {
-  fs.mkdirSync(DB_DIR, { recursive: true });
+const targetDir = path.dirname(DB_PATH);
+if (!fs.existsSync(targetDir)) {
+  fs.mkdirSync(targetDir, { recursive: true });
 }
 
 const db = new DatabaseSync(DB_PATH);

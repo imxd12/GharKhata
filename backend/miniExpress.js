@@ -292,7 +292,26 @@ class MiniApp extends MiniRouter {
 }
 
 function miniExpress() {
-  return new MiniApp();
+  const appInstance = new MiniApp();
+  const app = function (req, res) {
+    return appInstance.handleRequest(req, res);
+  };
+  Object.setPrototypeOf(app, appInstance);
+  for (const prop of Object.getOwnPropertyNames(MiniApp.prototype)) {
+    if (prop !== 'constructor' && typeof appInstance[prop] === 'function') {
+      app[prop] = appInstance[prop].bind(appInstance);
+    }
+  }
+  for (const prop of Object.getOwnPropertyNames(MiniRouter.prototype)) {
+    if (prop !== 'constructor' && typeof appInstance[prop] === 'function') {
+      app[prop] = appInstance[prop].bind(appInstance);
+    }
+  }
+  for (const prop of Object.keys(appInstance)) {
+    app[prop] = appInstance[prop];
+  }
+  app.handle = app;
+  return app;
 }
 
 miniExpress.Router = function () {

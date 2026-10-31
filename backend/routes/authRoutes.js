@@ -155,7 +155,14 @@ router.post('/register', (req, res) => {
     );
 
     // 7. Issue session token
-    const token = createToken({ userId: user.id, householdId: user.household_id, role: user.role });
+    const token = createToken({
+      userId: user.id,
+      householdId: user.household_id,
+      role: user.role,
+      fullName: user.full_name,
+      email: user.email,
+      phone: user.phone
+    });
 
     return res.status(201).json({
       success: true,
@@ -211,7 +218,10 @@ router.post('/login', (req, res) => {
     const token = createToken({
       userId: user.id,
       householdId: user.household_id,
-      role: user.role
+      role: user.role,
+      fullName: user.full_name,
+      email: user.email,
+      phone: user.phone
     });
 
     const safeUser = {

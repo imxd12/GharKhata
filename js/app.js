@@ -296,10 +296,10 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     // Check if on protected page
-    const publicPages = ['login.html', 'register.html', 'index.html'];
-    const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+    const cleanPath = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
+    const publicPages = ['login', 'register', 'index'];
 
-    if (!publicPages.includes(currentPath)) {
+    if (!publicPages.includes(cleanPath)) {
       if (window.GharKhataAuth && !window.GharKhataAuth.requireAuth()) {
         return;
       }

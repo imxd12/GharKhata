@@ -25,13 +25,27 @@
           headers
         });
 
-        // If session expired
+        // If unauthorized or session expired
         if (response.status === 401) {
-          if (window.GharKhataAuth) {
-            window.GharKhataAuth.clearSession();
-            window.location.href = 'login.html';
+          let errorMsg = 'Your session has expired. Please log in again.';
+          try {
+            const errData = await response.json();
+            if (errData && errData.message) errorMsg = errData.message;
+          } catch (e) {}
+
+          const page = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
+          const publicPages = ['login', 'register', 'index'];
+          if (!publicPages.includes(page)) {
+            // Only redirect if local session token is missing entirely
+            const currentToken = window.GharKhataAuth ? window.GharKhataAuth.getToken() : null;
+            if (!currentToken) {
+              if (window.GharKhataAuth) window.GharKhataAuth.clearSession();
+              window.location.href = 'login.html';
+            } else {
+              console.warn('Authentication status 401 on protected page:', errorMsg);
+            }
           }
-          throw new Error('Your session has expired. Please log in again.');
+          throw new Error(errorMsg);
         }
 
         const data = await response.json();

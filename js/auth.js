@@ -52,16 +52,23 @@
 
     requireAuth(redirect = 'login.html') {
       if (!this.isAuthenticated()) {
-        window.location.href = redirect;
-        return false;
+        const currentPage = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
+        const publicPages = ['login', 'register', 'index'];
+        if (!publicPages.includes(currentPage)) {
+          window.location.href = redirect;
+          return false;
+        }
       }
       return true;
     },
 
     redirectIfAuthenticated(redirect = 'dashboard.html') {
       if (this.isAuthenticated()) {
-        window.location.href = redirect;
-        return true;
+        const currentPage = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
+        if (currentPage === 'login' || currentPage === 'register') {
+          window.location.href = redirect;
+          return true;
+        }
       }
       return false;
     },

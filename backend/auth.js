@@ -51,7 +51,15 @@ function generateHouseholdId() {
 function createToken(payload, expiresInHours = 72) {
   const header = { alg: 'HS256', typ: 'JWT' };
   const exp = Math.floor(Date.now() / 1000) + (expiresInHours * 3600);
-  const data = { ...payload, exp };
+  const data = {
+    userId: payload.userId,
+    householdId: payload.householdId,
+    role: payload.role,
+    fullName: payload.fullName || payload.full_name || '',
+    email: payload.email || '',
+    phone: payload.phone || '',
+    exp
+  };
 
   const encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64url');
   const encodedHeader = encode(header);
