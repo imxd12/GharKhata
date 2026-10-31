@@ -21,7 +21,7 @@
 
       window.addEventListener('gharkhata:sync', (e) => {
         const type = e.detail?.type;
-        if (type && type.startsWith('REMARK_') || type === 'DISCUSSION_STATUS_CHANGED') {
+        if (type && (type.startsWith('REMARK_') || type.startsWith('EXPENSE_') || type === 'DISCUSSION_STATUS_CHANGED' || type === 'DATA_REFRESHED' || type === 'HOUSEHOLD_RESET')) {
           if (activeExpenseId && e.detail?.data?.expense_id === Number(activeExpenseId)) {
             this.refreshModalThread();
           }

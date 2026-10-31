@@ -206,7 +206,10 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', loadReportsData);
+    document.addEventListener('DOMContentLoaded', () => {
+      loadReportsData();
+      window.addEventListener('gharkhata:sync', () => loadReportsData());
+    });
   </script>
 </body>
 </html>

@@ -22,7 +22,7 @@
       // Listen for real-time sync events
       window.addEventListener('gharkhata:sync', (e) => {
         const type = e.detail?.type;
-        if (type && (type.startsWith('EXPENSE_') || type.startsWith('REMARK_'))) {
+        if (type && (type.startsWith('EXPENSE_') || type.startsWith('REMARK_') || type === 'DATA_REFRESHED' || type === 'HOUSEHOLD_RESET')) {
           this.loadExpenses(false);
         }
       });
@@ -506,6 +506,23 @@
           try {
             await window.GharKhataDB.request(`/api/expenses/${id}`, { method: 'DELETE' });
             window.GharKhataNotifications.toast('Expense record deleted.', 'info');
+
+            // Broadcast delete event to partner device
+            if (window.GharKhataFirebase && window.GharKhataFirebase.publishSyncEvent) {
+              const user = window.GharKhataAuth.getUser();
+              if (user && user.household_id) {
+                window.GharKhataFirebase.publishSyncEvent(user.household_id, {
+                  type: 'EXPENSE_DELETED',
+                  id,
+                  amount: item.amount,
+                  description: item.description
+                });
+              }
+            }
+            window.dispatchEvent(new CustomEvent('gharkhata:sync', {
+              detail: { type: 'EXPENSE_DELETED', id, amount: item.amount, description: item.description }
+            }));
+
             this.loadExpenses(false);
           } catch (err) {
             window.GharKhataNotifications.toast(err.message, 'error');
