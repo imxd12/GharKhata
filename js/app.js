@@ -135,8 +135,8 @@
           <span class="badge badge-expense notifications-badge" style="position:absolute; top:-4px; right:-4px; font-size:0.65rem; padding:2px 5px; display:none;">0</span>
         </button>
 
-        <button class="btn-icon theme-toggle-btn" title="Toggle Dark/Light Mode">
-          🌙
+        <button class="btn-icon theme-toggle-btn" title="Toggle Dark/Light Mode" onclick="window.GharKhataTheme ? window.GharKhataTheme.toggle() : null">
+          ${window.GharKhataTheme && window.GharKhataTheme.get() === 'dark' ? '☀️' : '🌙'}
         </button>
 
         <a href="profile.html" class="partner-pill" style="text-decoration:none; color:inherit;">

@@ -7,20 +7,25 @@
   const THEME_KEY = 'gharkhata_theme';
 
   function getPreferredTheme() {
-    const saved = localStorage.getItem(THEME_KEY);
-    if (saved) return saved;
+    try {
+      const saved = localStorage.getItem(THEME_KEY);
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch (e) {}
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
 
   function applyTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem(THEME_KEY, theme);
+    const targetTheme = (theme === 'dark') ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', targetTheme);
+    try {
+      localStorage.setItem(THEME_KEY, targetTheme);
+    } catch (e) {}
 
-    // Update toggle icons if present on page
+    // Update toggle icons on all theme buttons currently in DOM
     const toggleBtns = document.querySelectorAll('.theme-toggle-btn');
     toggleBtns.forEach(btn => {
-      btn.innerHTML = theme === 'dark' ? '☀️' : '🌙';
-      btn.setAttribute('title', theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode');
+      btn.innerHTML = targetTheme === 'dark' ? '☀️' : '🌙';
+      btn.setAttribute('title', targetTheme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode');
     });
   }
 
@@ -29,9 +34,9 @@
   applyTheme(initialTheme);
 
   window.GharKhataTheme = {
-    get: () => document.documentElement.getAttribute('data-theme') || 'light',
+    get: () => document.documentElement.getAttribute('data-theme') || getPreferredTheme(),
     toggle: () => {
-      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const current = document.documentElement.getAttribute('data-theme') || getPreferredTheme();
       const next = current === 'dark' ? 'light' : 'dark';
       applyTheme(next);
       return next;
@@ -39,11 +44,17 @@
     set: applyTheme
   };
 
+  // Delegated global click listener so dynamically rendered buttons (topbar, modals) always work
+  document.addEventListener('click', (e) => {
+    const toggleBtn = e.target.closest('.theme-toggle-btn');
+    if (toggleBtn) {
+      e.preventDefault();
+      window.GharKhataTheme.toggle();
+    }
+  });
+
   document.addEventListener('DOMContentLoaded', () => {
     applyTheme(getPreferredTheme());
-    document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
-      btn.addEventListener('click', () => window.GharKhataTheme.toggle());
-    });
   });
 })();
 
