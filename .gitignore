@@ -1,0 +1,22 @@
+# Node & Environment
+node_modules/
+.env
+
+# Database runtime & backups
+database/*.db
+database/*.db-journal
+database/*.db-wal
+database/*.db-shm
+!database/.gitkeep
+
+# Uploads
+uploads/receipts/*
+!uploads/receipts/.gitkeep
+
+# System & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+

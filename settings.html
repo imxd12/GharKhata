@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings – GharKhata</title>
+  <meta name="theme-color" content="#065f46">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <aside class="app-sidebar"></aside>
+
+    <main class="main-content">
+      <header class="app-topbar">
+        <div class="topbar-brand">
+          <div class="sidebar-brand-icon" style="width:36px; height:36px;">⚙️</div>
+          <div>
+            <h1>Household Settings & Categories</h1>
+            <div class="topbar-tagline">Configure budget limits, custom categories, preferences & backup</div>
+          </div>
+        </div>
+        <div class="topbar-actions"></div>
+      </header>
+
+      <div class="dashboard-grid">
+        <!-- Left: Household Configuration & Categories -->
+        <div>
+          <!-- Household Budget Settings Card -->
+          <div class="card" style="margin-bottom:24px;">
+            <div class="card-header">
+              <h3 class="card-title">Monthly Household Budget</h3>
+              <span class="badge badge-income">Spending Control</span>
+            </div>
+            <form id="settings-household-form">
+              <div class="card-body">
+                <div class="form-group">
+                  <label class="form-label" for="settings-hh-name">Household Name</label>
+                  <input type="text" id="settings-hh-name" class="form-control" placeholder="e.g. The Family Khata" required />
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="settings-hh-budget">Monthly Budget Limit (INR)</label>
+                    <input type="number" id="settings-hh-budget" class="form-control" step="100" min="1000" placeholder="e.g. 50000" required />
+                    <small style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">
+                      Automatic alerts trigger when spending hits 70%, 90% and 100%.
+                    </small>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="settings-hh-currency">Currency Code</label>
+                    <input type="text" id="settings-hh-currency" class="form-control" value="INR" readonly style="background:var(--bg-subtle);" />
+                  </div>
+                </div>
+              </div>
+              <div class="card-footer" style="text-align:right;">
+                <button type="submit" id="btn-save-hh-settings" class="btn btn-primary btn-sm">Save Budget Settings</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Custom Categories Manager -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Custom Categories Manager</h3>
+              <button class="btn btn-primary btn-sm" onclick="openAddCategoryModal()">+ Add Category</button>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <div class="table-responsive">
+                <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+                  <thead>
+                    <tr style="border-bottom:1px solid var(--border-color); background:var(--bg-subtle); text-align:left;">
+                      <th style="padding:10px 16px;">Category Name</th>
+                      <th style="padding:10px 16px;">Ledger Type</th>
+                      <th style="padding:10px 16px;">Source</th>
+                      <th style="padding:10px 16px; text-align:right;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="settings-categories-tbody">
+                    <tr><td colspan="4" style="text-align:center; padding:18px;">Loading categories...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Appearance, App Backup & PWA -->
+        <div>
+          <!-- Appearance & Theme Card -->
+          <div class="card" style="margin-bottom:24px;">
+            <div class="card-header">
+              <h3 class="card-title">Interface Theme</h3>
+            </div>
+            <div class="card-body">
+              <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:16px;">
+                Choose between Emerald Light and Professional Dark theme. Preference is saved locally.
+              </p>
+              <div style="display:flex; gap:12px;">
+                <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="setThemeDirect('light')">☀️ Light Mode</button>
+                <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="setThemeDirect('dark')">🌙 Dark Mode</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Data Backup & Safety -->
+          <div class="card" style="margin-bottom:24px;">
+            <div class="card-header">
+              <h3 class="card-title">Financial Data Backup</h3>
+            </div>
+            <div class="card-body">
+              <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:16px;">
+                Download an offline JSON snapshot of your household's entire SQLite records for safekeeping.
+              </p>
+              <a href="/api/household/backup" class="btn btn-outline btn-sm" style="width:100%; justify-content:center;" target="_blank">
+                ⬇️ Download Full JSON Backup
+              </a>
+            </div>
+          </div>
+
+          <!-- PWA Installation Card -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Mobile App Installation (PWA)</h3>
+            </div>
+            <div class="card-body">
+              <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                <div class="sidebar-brand-icon" style="width:40px; height:40px; font-size:1.1rem;">GK</div>
+                <div>
+                  <h4 style="font-size:0.95rem; font-weight:700;">GharKhata Personal OS</h4>
+                  <div style="font-size:0.8rem; color:var(--text-muted);">Installable Progressive Web App</div>
+                </div>
+              </div>
+              <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px; line-height:1.4;">
+                GharKhata can be installed directly on Android, iPhone or Desktop. Tap "Add to Home Screen" in your browser menu to use it like a native mobile app.
+              </p>
+              <button id="pwa-install-btn" class="btn btn-primary btn-sm" style="width:100%; display:none;">
+                📲 Install GharKhata App
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <nav class="mobile-bottom-nav"></nav>
+  </div>
+
+  <!-- Add Category Modal -->
+  <div id="add-category-modal" class="modal-backdrop">
+    <div class="modal" style="max-width:440px;">
+      <div class="modal-header">
+        <h3>Add Custom Category</h3>
+        <button class="modal-close" onclick="closeAddCategoryModal()">&times;</button>
+      </div>
+      <form id="add-category-form" onsubmit="handleCategorySubmit(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Category Name <span class="required">*</span></label>
+            <input type="text" id="cat-name-input" class="form-control" placeholder="e.g. Pet Care, Internet, Gym" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Type <span class="required">*</span></label>
+            <select id="cat-type-select" class="form-control" required>
+              <option value="expense">Expense (Mom)</option>
+              <option value="income">Income (Dad)</option>
+              <option value="both">Both</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeAddCategoryModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Add Category</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/theme.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/database.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/whatsapp.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/app.js"></script>
+
+  <script>
+    let deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const installBtn = document.getElementById('pwa-install-btn');
+      if (installBtn) {
+        installBtn.style.display = 'block';
+        installBtn.onclick = async () => {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log(`User response to install: ${outcome}`);
+          deferredPrompt = null;
+          installBtn.style.display = 'none';
+        };
+      }
+    });
+
+    function setThemeDirect(mode) {
+      window.GharKhataTheme.set(mode);
+      window.GharKhataNotifications.toast(`Theme set to ${mode} mode.`, 'info');
+    }
+
+    async function loadSettings() {
+      try {
+        const [hhRes, catRes] = await Promise.all([
+          window.GharKhataDB.request('/api/household'),
+          window.GharKhataDB.request('/api/categories')
+        ]);
+
+        const hh = hhRes.data?.household;
+        if (hh) {
+          document.getElementById('settings-hh-name').value = hh.name;
+          document.getElementById('settings-hh-budget').value = hh.monthly_budget;
+          document.getElementById('settings-hh-currency').value = hh.currency;
+        }
+
+        renderCategoriesTable(catRes.data || []);
+      } catch (err) {
+        console.warn('Error loading settings:', err);
+      }
+    }
+
+    function renderCategoriesTable(categories) {
+      const tbody = document.getElementById('settings-categories-tbody');
+      if (!tbody) return;
+
+      let html = '';
+      categories.forEach(c => {
+        const isCustom = c.is_custom === 1;
+        html += `
+          <tr style="border-bottom:1px solid var(--border-color);">
+            <td style="padding:10px 16px; font-weight:600;">${c.name}</td>
+            <td style="padding:10px 16px;">
+              <span class="badge ${c.type === 'income' ? 'badge-income' : 'badge-expense'}">${c.type}</span>
+            </td>
+            <td style="padding:10px 16px; color:var(--text-muted); font-size:0.8rem;">
+              ${isCustom ? 'Custom' : 'System Default'}
+            </td>
+            <td style="padding:10px 16px; text-align:right;">
+              ${isCustom ? `
+                <button class="btn btn-outline btn-sm text-expense" style="padding:2px 8px; font-size:0.75rem;" onclick="deleteCustomCategory(${c.id}, '${c.name}')">Delete</button>
+              ` : '<span style="font-size:0.75rem; color:var(--text-subtle);">Locked</span>'}
+            </td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    function openAddCategoryModal() {
+      document.getElementById('cat-name-input').value = '';
+      document.getElementById('add-category-modal').classList.add('active');
+    }
+
+    function closeAddCategoryModal() {
+      document.getElementById('add-category-modal').classList.remove('active');
+    }
+
+    async function handleCategorySubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('cat-name-input').value.trim();
+      const type = document.getElementById('cat-type-select').value;
+
+      try {
+        await window.GharKhataDB.request('/api/categories', {
+          method: 'POST',
+          body: JSON.stringify({ name, type })
+        });
+        window.GharKhataNotifications.toast(`Category "${name}" added!`, 'success');
+        closeAddCategoryModal();
+        const catRes = await window.GharKhataDB.request('/api/categories');
+        renderCategoriesTable(catRes.data || []);
+      } catch (err) {
+        window.GharKhataNotifications.toast(err.message, 'error');
+      }
+    }
+
+    function deleteCustomCategory(id, name) {
+      window.GharKhataNotifications.confirm({
+        title: 'Delete Category',
+        message: `Delete custom category "${name}"? Existing transactions with this category will remain intact.`,
+        confirmText: 'Delete',
+        isDanger: true,
+        onConfirm: async () => {
+          try {
+            await window.GharKhataDB.request(`/api/categories/${id}`, { method: 'DELETE' });
+            window.GharKhataNotifications.toast('Category removed.', 'info');
+            const catRes = await window.GharKhataDB.request('/api/categories');
+            renderCategoriesTable(catRes.data || []);
+          } catch (err) {
+            window.GharKhataNotifications.toast(err.message, 'error');
+          }
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSettings();
+
+      const hhForm = document.getElementById('settings-household-form');
+      if (hhForm) {
+        hhForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const name = document.getElementById('settings-hh-name').value.trim();
+          const monthly_budget = parseFloat(document.getElementById('settings-hh-budget').value);
+
+          const btn = document.getElementById('btn-save-hh-settings');
+          btn.disabled = true;
+          btn.textContent = 'Saving...';
+
+          try {
+            await window.GharKhataDB.request('/api/household', {
+              method: 'PUT',
+              body: JSON.stringify({ name, monthly_budget })
+            });
+            window.GharKhataNotifications.toast('Household budget settings updated successfully!', 'success');
+          } catch (err) {
+            window.GharKhataNotifications.toast(err.message, 'error');
+          } finally {
+            btn.disabled = false;
+            btn.textContent = 'Save Budget Settings';
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
+

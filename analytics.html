@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics & Reports – GharKhata</title>
+  <meta name="theme-color" content="#065f46">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <div class="app-container">
+    <aside class="app-sidebar"></aside>
+
+    <main class="main-content">
+      <header class="app-topbar">
+        <div class="topbar-brand">
+          <div class="sidebar-brand-icon" style="width:36px; height:36px;">📈</div>
+          <div>
+            <h1>Financial Analytics</h1>
+            <div class="topbar-tagline">Visual spending distribution and savings trends</div>
+          </div>
+        </div>
+        <div class="topbar-actions"></div>
+      </header>
+
+      <!-- Timeframe Filter Toolbar -->
+      <div class="card" style="margin-bottom:24px; padding:16px 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+          <div>
+            <h3 style="font-size:1rem; font-weight:700;">Performance Overview</h3>
+            <span style="font-size:0.8rem; color:var(--text-muted);">Select period for category insights and cash flow comparison</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <label for="analytics-range-select" style="font-size:0.85rem; font-weight:600;">Timeframe:</label>
+            <select id="analytics-range-select" class="form-control" style="width:180px;">
+              <option value="month">This Month</option>
+              <option value="quarter">Last 3 Months</option>
+              <option value="year">Current Year</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick KPI Cards -->
+      <section class="stats-grid" style="margin-bottom:24px;">
+        <div class="stat-card balance">
+          <div class="stat-header">
+            <span class="stat-label">Savings Rate</span>
+            <div class="stat-icon balance">📊</div>
+          </div>
+          <div class="stat-value" id="highlight-savings-rate">0%</div>
+          <div class="stat-footer">
+            <span>Income retained as savings</span>
+          </div>
+        </div>
+
+        <div class="stat-card expense">
+          <div class="stat-header">
+            <span class="stat-label">Top Expense Category</span>
+            <div class="stat-icon expense">🏷️</div>
+          </div>
+          <div class="stat-value" style="font-size:1.3rem;" id="highlight-top-category">Loading...</div>
+          <div class="stat-footer">
+            <span>Highest spending allocation</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Charts Grid -->
+      <div class="dashboard-grid">
+        <!-- Monthly Comparison Bar Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 style="font-size:1.05rem; font-weight:700;">Monthly Income vs Expense</h3>
+            <span class="badge badge-resolved">Past 6 Months</span>
+          </div>
+          <div class="chart-canvas-wrapper" style="height:300px;">
+            <canvas id="chart-monthly-comparison"></canvas>
+          </div>
+        </div>
+
+        <!-- Category Breakdown Donut -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 style="font-size:1.05rem; font-weight:700;">Expense by Category</h3>
+          </div>
+          <div class="chart-canvas-wrapper" style="height:300px;">
+            <canvas id="chart-category-breakdown"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Secondary Grid: Payment Modes & Detailed Table -->
+      <div class="dashboard-grid" style="margin-top:24px;">
+        <!-- Payment Mode Pie -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 style="font-size:1.05rem; font-weight:700;">Payment Methods (UPI / Cash / Bank)</h3>
+          </div>
+          <div class="chart-canvas-wrapper" style="height:260px;">
+            <canvas id="chart-payment-modes"></canvas>
+          </div>
+        </div>
+
+        <!-- Category Details Table -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Category Breakdown Details</h3>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-responsive">
+              <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+                <thead>
+                  <tr style="border-bottom:1px solid var(--border-color); background:var(--bg-subtle); text-align:left;">
+                    <th style="padding:12px 16px;">Category</th>
+                    <th style="padding:12px 16px;">Total Spent</th>
+                    <th style="padding:12px 16px;">Share (%)</th>
+                    <th style="padding:12px 16px;">Transactions</th>
+                  </tr>
+                </thead>
+                <tbody id="analytics-category-tbody">
+                  <tr><td colspan="4" style="text-align:center; padding:18px;">Loading breakdown...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <nav class="mobile-bottom-nav"></nav>
+  </div>
+
+  <script src="js/theme.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/database.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/whatsapp.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/analytics.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – GharKhata</title>
+  <meta name="theme-color" content="#065f46">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <!-- Chart.js for Visual Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Desktop Sidebar -->
+    <aside class="app-sidebar"></aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Topbar -->
+      <header class="app-topbar">
+        <div class="topbar-brand">
+          <div class="sidebar-brand-icon" style="width:36px; height:36px;">GK</div>
+          <div>
+            <h1 id="dash-greeting">Household Overview</h1>
+            <div class="topbar-tagline">"Your Family. Your Money. One Khata."</div>
+          </div>
+        </div>
+        <div class="topbar-actions"></div>
+      </header>
+
+      <!-- Action Banner (Role Customised) -->
+      <section id="dash-role-banner" class="action-banner">
+        <div class="action-banner-content">
+          <h2 id="banner-title">Family Khata Dashboard</h2>
+          <p id="banner-subtitle">Synchronized household ledger connected for Dad and Mom.</p>
+        </div>
+        <div class="action-banner-buttons">
+          <button id="banner-action-btn" class="btn btn-primary"></button>
+          <button id="banner-whatsapp-btn" class="btn btn-whatsapp">
+            <span>💬 Chat on WhatsApp</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Metric Stats Grid -->
+      <section class="stats-grid">
+        <!-- Total Income -->
+        <div class="stat-card income">
+          <div class="stat-header">
+            <span class="stat-label">Total Income</span>
+            <div class="stat-icon income">↗</div>
+          </div>
+          <div class="stat-value text-income" id="stat-total-income">₹0</div>
+          <div class="stat-footer">
+            <span id="stat-month-income">This Month: ₹0</span>
+            <span class="badge badge-income">Dad</span>
+          </div>
+        </div>
+
+        <!-- Total Expenses -->
+        <div class="stat-card expense">
+          <div class="stat-header">
+            <span class="stat-label">Total Expenses</span>
+            <div class="stat-icon expense">↙</div>
+          </div>
+          <div class="stat-value text-expense" id="stat-total-expense">₹0</div>
+          <div class="stat-footer">
+            <span id="stat-month-expense">This Month: ₹0</span>
+            <span class="badge badge-expense">Mom</span>
+          </div>
+        </div>
+
+        <!-- Remaining Balance -->
+        <div class="stat-card balance">
+          <div class="stat-header">
+            <span class="stat-label">Remaining Balance</span>
+            <div class="stat-icon balance">💼</div>
+          </div>
+          <div class="stat-value" id="stat-remaining-balance">₹0</div>
+          <div class="stat-footer">
+            <span>Net Household Savings</span>
+            <span id="stat-savings-status" class="badge badge-resolved">Positive</span>
+          </div>
+        </div>
+
+        <!-- Monthly Budget Meter -->
+        <div class="stat-card budget">
+          <div class="stat-header">
+            <span class="stat-label">Monthly Budget</span>
+            <div class="stat-icon budget">🎯</div>
+          </div>
+          <div class="stat-value" id="stat-monthly-budget">₹50,000</div>
+          <div class="stat-footer">
+            <span id="stat-budget-percent">0% Utilized</span>
+            <span id="stat-budget-badge" class="badge badge-income">On Track</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Monthly Budget Progress Card -->
+      <section class="budget-card">
+        <div class="budget-header">
+          <div>
+            <h3 style="font-size:1rem; font-weight:700;">Monthly Spending Limit Progress</h3>
+            <span id="budget-progress-text" style="font-size:0.8rem; color:var(--text-muted);">
+              Spent ₹0 of ₹50,000 monthly limit
+            </span>
+          </div>
+          <a href="settings.html" class="btn btn-outline btn-sm">Edit Budget</a>
+        </div>
+        <div class="budget-progress-track">
+          <div id="budget-progress-fill" class="budget-progress-fill" style="width:0%;"></div>
+        </div>
+        <div class="budget-markers">
+          <span>0%</span>
+          <span>70% (Alert)</span>
+          <span>90% (Warning)</span>
+          <span>100% (Limit)</span>
+        </div>
+      </section>
+
+      <!-- Two-Column Grid: Charts & Recent Activities -->
+      <div class="dashboard-grid">
+        <!-- Left Column: Visual Analytics & Timeline -->
+        <div>
+          <!-- Monthly Trend Chart -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 style="font-size:1.05rem; font-weight:700;">Income vs Expense (6-Month Trend)</h3>
+              <a href="analytics.html" class="btn btn-outline btn-sm">Full Analytics →</a>
+            </div>
+            <div class="chart-canvas-wrapper">
+              <canvas id="chart-monthly-comparison"></canvas>
+            </div>
+          </div>
+
+          <!-- Recent Transactions Timeline -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Recent Khata Transactions</h3>
+              <a href="transactions.html" class="btn btn-outline btn-sm">View All →</a>
+            </div>
+            <div class="card-body" style="padding:16px;" id="dash-recent-transactions">
+              <div class="skeleton skeleton-text"></div>
+              <div class="skeleton skeleton-text"></div>
+              <div class="skeleton skeleton-text"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Category Breakdown & Partner Hub -->
+        <div>
+          <!-- Partner Hub Card -->
+          <div class="card" style="margin-bottom:24px;">
+            <div class="card-header">
+              <h3 class="card-title">Family Partner</h3>
+              <span class="badge badge-resolved">Connected</span>
+            </div>
+            <div class="card-body" id="partner-hub-content">
+              <div class="skeleton skeleton-card"></div>
+            </div>
+          </div>
+
+          <!-- Category Breakdown Doughnut -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 style="font-size:1.05rem; font-weight:700;">Expense Categories</h3>
+            </div>
+            <div class="chart-canvas-wrapper" style="height:240px;">
+              <canvas id="chart-category-breakdown"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav"></nav>
+  </div>
+
+  <!-- Shared Modals (Income & Expense) -->
+  <div id="income-modal-backdrop" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="income-modal-title">Record New Income</h3>
+        <button class="modal-close" onclick="window.GharKhataIncome.closeModal()">&times;</button>
+      </div>
+      <form id="income-modal-form">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Amount (INR) <span class="required">*</span></label>
+              <input type="number" id="income-amount" class="form-control" step="0.01" min="1" placeholder="e.g. 50000" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Category <span class="required">*</span></label>
+              <select id="income-category-select" class="form-control" required>
+                <option value="Salary">Salary</option>
+                <option value="Business">Business</option>
+                <option value="Investment">Investment</option>
+                <option value="Rental">Rental</option>
+                <option value="Freelance">Freelance</option>
+                <option value="Gift / Bonus">Gift / Bonus</option>
+                <option value="Other Income">Other Income</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description <span class="required">*</span></label>
+            <input type="text" id="income-description" class="form-control" placeholder="e.g. Monthly Salary Credit" required />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Date <span class="required">*</span></label>
+              <input type="date" id="income-date" class="form-control" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Payment Mode <span class="required">*</span></label>
+              <select id="income-payment-mode" class="form-control" required>
+                <option value="Bank">Bank Transfer / NEFT</option>
+                <option value="UPI">UPI</option>
+                <option value="Cash">Cash</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Optional Notes</label>
+            <textarea id="income-notes" class="form-control" rows="2" placeholder="Any additional notes or reference number..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="window.GharKhataIncome.closeModal()">Cancel</button>
+          <button type="submit" id="income-submit-btn" class="btn btn-primary btn-sm">Save Income</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="expense-modal-backdrop" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="expense-modal-title">Record New Expense</h3>
+        <button class="modal-close" onclick="window.GharKhataExpenses.closeModal()">&times;</button>
+      </div>
+      <form id="expense-modal-form">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Amount (INR) <span class="required">*</span></label>
+              <input type="number" id="expense-amount" class="form-control" step="0.01" min="1" placeholder="e.g. 2450" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Category <span class="required">*</span></label>
+              <select id="expense-category-select" class="form-control" required>
+                <option value="Groceries">Groceries</option>
+                <option value="Electricity">Electricity</option>
+                <option value="Water">Water</option>
+                <option value="Rent">Rent</option>
+                <option value="Medical">Medical</option>
+                <option value="Education">Education</option>
+                <option value="Transport">Transport</option>
+                <option value="Food">Food & Dining</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Household">Household</option>
+                <option value="Others">Others</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description <span class="required">*</span></label>
+            <input type="text" id="expense-description" class="form-control" placeholder="e.g. Monthly Grocery Bill" required />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Date <span class="required">*</span></label>
+              <input type="date" id="expense-date" class="form-control" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Payment Mode <span class="required">*</span></label>
+              <select id="expense-payment-mode" class="form-control" required>
+                <option value="UPI">UPI (GPay / PhonePe / Paytm)</option>
+                <option value="Cash">Cash</option>
+                <option value="Bank">Bank Transfer / Card</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Receipt Upload Box -->
+          <div class="form-group">
+            <label class="form-label">Attach Receipt / Bill (Image or PDF)</label>
+            <input type="file" id="expense-receipt-file" class="form-control" accept="image/*,application/pdf" />
+            <div id="expense-receipt-preview-box" style="display:none; align-items:center; justify-content:space-between; margin-top:8px; padding:8px 12px; background:var(--bg-subtle); border-radius:var(--radius-md);">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <img id="expense-receipt-preview-img" src="" alt="Thumbnail" style="width:36px; height:36px; object-fit:cover; border-radius:4px;" />
+                <span id="expense-receipt-filename" style="font-size:0.8rem; font-weight:600;"></span>
+              </div>
+              <button type="button" id="expense-remove-receipt-btn" class="btn btn-outline btn-sm text-expense" style="padding:2px 6px;">Remove</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Optional Notes</label>
+            <textarea id="expense-notes" class="form-control" rows="2" placeholder="Itemized list or specific remarks..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="window.GharKhataExpenses.closeModal()">Cancel</button>
+          <button type="submit" id="expense-submit-btn" class="btn btn-primary btn-sm">Save Expense</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/theme.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/database.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/whatsapp.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/income.js"></script>
+  <script src="js/expenses.js"></script>
+  <script src="js/discussions.js"></script>
+  <script src="js/analytics.js"></script>
+  <script src="js/app.js"></script>
+
+  <script>
+    // Dashboard Controller
+    async function loadDashboardData() {
+      const user = window.GharKhataAuth.getUser();
+      if (!user) return;
+
+      // Customize banner for role
+      const isDad = user.role === 'Dad';
+      const greetingEl = document.getElementById('dash-greeting');
+      const bannerTitle = document.getElementById('banner-title');
+      const bannerSubtitle = document.getElementById('banner-subtitle');
+      const actionBtn = document.getElementById('banner-action-btn');
+      const waBtn = document.getElementById('banner-whatsapp-btn');
+
+      if (greetingEl) {
+        greetingEl.textContent = `Hello, ${user.full_name} (${user.role})`;
+      }
+
+      if (isDad) {
+        bannerTitle.textContent = "Income Manager's Desk";
+        bannerSubtitle.textContent = "Record your income sources and review household expenses logged by Mom.";
+        actionBtn.innerHTML = "<span>+</span> Record Income";
+        actionBtn.onclick = () => window.GharKhataIncome.openAddModal();
+        waBtn.onclick = () => window.GharKhataWhatsApp.chatWithPartner();
+      } else {
+        bannerTitle.textContent = "Expense Manager's Desk";
+        bannerSubtitle.textContent = "Record household bills, upload receipts and track budget categories.";
+        actionBtn.innerHTML = "<span>+</span> Log Expense & Bill";
+        actionBtn.onclick = () => window.GharKhataExpenses.openAddModal();
+        waBtn.onclick = () => window.GharKhataWhatsApp.chatWithPartner();
+      }
+
+      try {
+        const res = await window.GharKhataDB.request('/api/reports/dashboard');
+        const s = res.data.summary;
+
+        // Populate Stats
+        document.getElementById('stat-total-income').textContent = `₹${s.lifetime_income.toLocaleString()}`;
+        document.getElementById('stat-month-income').textContent = `This Month: ₹${s.month_income.toLocaleString()}`;
+
+        document.getElementById('stat-total-expense').textContent = `₹${s.lifetime_expense.toLocaleString()}`;
+        document.getElementById('stat-month-expense').textContent = `This Month: ₹${s.month_expense.toLocaleString()}`;
+
+        document.getElementById('stat-remaining-balance').textContent = `₹${s.balance.toLocaleString()}`;
+        const savingsBadge = document.getElementById('stat-savings-status');
+        if (s.balance < 0) {
+          savingsBadge.textContent = "Deficit";
+          savingsBadge.className = "badge badge-expense";
+        } else {
+          savingsBadge.textContent = "Surplus";
+          savingsBadge.className = "badge badge-resolved";
+        }
+
+        document.getElementById('stat-monthly-budget').textContent = `₹${s.monthly_budget.toLocaleString()}`;
+        document.getElementById('stat-budget-percent').textContent = `${s.budget_spent_percent}% Utilized`;
+
+        // Progress Fill
+        const fill = document.getElementById('budget-progress-fill');
+        const fillPercent = Math.min(s.budget_spent_percent, 100);
+        fill.style.width = `${fillPercent}%`;
+        fill.className = 'budget-progress-fill';
+        if (s.budget_spent_percent >= 100) {
+          fill.classList.add('danger');
+        } else if (s.budget_spent_percent >= 70) {
+          fill.classList.add('warning');
+        }
+
+        const budgetBadge = document.getElementById('stat-budget-badge');
+        if (s.budget_spent_percent >= 100) {
+          budgetBadge.textContent = "Exceeded";
+          budgetBadge.className = "badge badge-expense";
+        } else if (s.budget_spent_percent >= 90) {
+          budgetBadge.textContent = "Critical";
+          budgetBadge.className = "badge badge-expense";
+        } else if (s.budget_spent_percent >= 70) {
+          budgetBadge.textContent = "Alert";
+          budgetBadge.className = "badge badge-pending";
+        } else {
+          budgetBadge.textContent = "On Track";
+          budgetBadge.className = "badge badge-income";
+        }
+
+        document.getElementById('budget-progress-text').textContent =
+          `Spent ₹${s.month_expense.toLocaleString()} of ₹${s.monthly_budget.toLocaleString()} monthly budget (${s.budget_spent_percent}%)`;
+
+        // Partner Hub
+        const partner = res.data.partner;
+        const partnerEl = document.getElementById('partner-hub-content');
+        if (partner) {
+          partnerEl.innerHTML = `
+            <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px;">
+              <div class="sidebar-user-avatar" style="width:48px; height:48px; font-size:1.4rem;">
+                ${partner.role === 'Dad' ? '👨' : '👩'}
+              </div>
+              <div>
+                <h4 style="font-size:1rem; font-weight:700;">${partner.full_name}</h4>
+                <div style="font-size:0.8rem; color:var(--text-muted);">${partner.role} • ${partner.phone}</div>
+              </div>
+            </div>
+            <button class="btn btn-whatsapp btn-sm" style="width:100%;" onclick="window.GharKhataWhatsApp.chatWithPartner()">
+              <span>💬 WhatsApp ${partner.role}</span>
+            </button>
+          `;
+        } else {
+          partnerEl.innerHTML = `
+            <div style="text-align:center; padding:12px 0;">
+              <div style="font-size:2rem; margin-bottom:6px;">🤝</div>
+              <h4 style="font-size:0.95rem; font-weight:700;">Waiting for Partner to Join</h4>
+              <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">
+                Share your Household ID: <strong>${user.household_id}</strong>
+              </p>
+              <button class="btn btn-outline btn-sm" onclick="window.GharKhataApp.copyHouseholdId('${user.household_id}')">
+                📋 Copy Household Code
+              </button>
+            </div>
+          `;
+        }
+
+        // Recent Transactions
+        const recents = res.data.recent_transactions || [];
+        const recentsEl = document.getElementById('dash-recent-transactions');
+        if (recents.length === 0) {
+          recentsEl.innerHTML = '<div class="empty-state"><p>No transactions recorded yet.</p></div>';
+        } else {
+          let rHtml = '<div class="transaction-list">';
+          recents.forEach(t => {
+            const isInc = t.type === 'income';
+            rHtml += `
+              <div class="transaction-item" style="padding:10px 14px;">
+                <div class="transaction-left">
+                  <div class="transaction-icon ${isInc ? 'income' : 'expense'}" style="width:36px; height:36px; font-size:1rem;">
+                    <span>${isInc ? '↗' : '↙'}</span>
+                  </div>
+                  <div class="transaction-meta">
+                    <span class="transaction-title" style="font-size:0.9rem;">${t.description}</span>
+                    <span class="transaction-subtitle">
+                      <span>${t.date}</span> •
+                      <span>${t.category}</span> •
+                      <span class="badge ${isInc ? 'badge-dad' : 'badge-mom'}" style="padding:1px 6px; font-size:0.65rem;">${t.managed_by}</span>
+                    </span>
+                  </div>
+                </div>
+                <div class="transaction-right">
+                  <span class="transaction-amount ${isInc ? 'income' : 'expense'}" style="font-size:0.95rem;">
+                    ${isInc ? '+' : '-'}₹${Number(t.amount).toLocaleString()}
+                  </span>
+                  ${!isInc && t.remarks_count > 0 ? `
+                    <span class="badge badge-resolved" style="cursor:pointer;" onclick="window.GharKhataDiscussions.openExpenseModal(${t.id})">💬 ${t.remarks_count}</span>
+                  ` : ''}
+                </div>
+              </div>
+            `;
+          });
+          rHtml += '</div>';
+          recentsEl.innerHTML = rHtml;
+        }
+
+        // Render charts
+        if (window.GharKhataAnalytics) {
+          window.GharKhataAnalytics.renderComparisonChart(res.data.monthly_trend || []);
+          window.GharKhataAnalytics.renderCategoryChart(res.data.category_breakdown || []);
+        }
+
+      } catch (err) {
+        console.error('Failed to load dashboard:', err);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDashboardData();
+      window.addEventListener('gharkhata:sync', () => loadDashboardData());
+    });
+  </script>
+</body>
+</html>
+

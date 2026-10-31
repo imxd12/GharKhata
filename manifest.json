@@ -1,0 +1,55 @@
+{
+  "name": "GharKhata – Family Finance OS",
+  "short_name": "GharKhata",
+  "description": "Your Family. Your Money. One Khata. Real-time family income and expense management connecting Dad and Mom.",
+  "start_url": "/dashboard.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fbf9f5",
+  "theme_color": "#065f46",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "/assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Record Income",
+      "short_name": "Income",
+      "description": "Add new income to household ledger",
+      "url": "/income.html",
+      "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Log Expense",
+      "short_name": "Expense",
+      "description": "Log new expense & attach bill",
+      "url": "/expenses.html",
+      "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Daily Khata",
+      "short_name": "Khata",
+      "description": "View daily household transaction timeline",
+      "url": "/transactions.html",
+      "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
+

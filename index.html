@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GharKhata – Your Family. Your Money. One Khata.</title>
+  <meta name="description" content="Modern, responsive, minimal and professional family income and expense management application connecting Dad and Mom.">
+  <meta name="theme-color" content="#065f46">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body style="background:linear-gradient(180deg, var(--bg-body) 0%, var(--bg-subtle) 100%);">
+
+  <nav style="display:flex; justify-content:space-between; align-items:center; padding:20px 36px; max-width:1200px; margin:0 auto;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div style="width:38px; height:38px; border-radius:var(--radius-md); background:var(--primary); color:#ffffff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.1rem;">GK</div>
+      <span style="font-size:1.4rem; font-weight:800; color:var(--primary); letter-spacing:-0.02em;">GharKhata</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button class="btn-icon theme-toggle-btn" title="Toggle Theme">🌙</button>
+      <a href="login.html" class="btn btn-outline btn-sm">Log In</a>
+      <a href="register.html" class="btn btn-primary btn-sm">Register Household</a>
+    </div>
+  </nav>
+
+  <main style="max-width:1100px; margin:40px auto; padding:0 24px; text-align:center;">
+    <div style="display:inline-flex; align-items:center; gap:8px; padding:6px 14px; background:var(--primary-soft); border:1px solid var(--primary-border); border-radius:var(--radius-full); margin-bottom:24px; font-size:0.85rem; color:var(--primary); font-weight:600;">
+      <span>✨</span> Two Roles. One Shared Family Ledger.
+    </div>
+
+    <h1 style="font-size:3.2rem; font-weight:800; line-height:1.15; letter-spacing:-0.03em; margin-bottom:18px; color:var(--text-main);">
+      Your Family. Your Money.<br><span style="color:var(--primary);">One Khata.</span>
+    </h1>
+
+    <p style="font-size:1.2rem; color:var(--text-muted); max-width:680px; margin:0 auto 36px auto; line-height:1.6;">
+      GharKhata connects Dad and Mom through a single Household ID. Dad manages income, Mom manages expenses, with real-time sync, bill attachments, and instant WhatsApp collaboration.
+    </p>
+
+    <div style="display:flex; justify-content:center; gap:16px; margin-bottom:60px; flex-wrap:wrap;">
+      <a href="register.html" class="btn btn-primary" style="padding:14px 28px; font-size:1.05rem;">
+        <span>Create Family Household</span>
+        <span>→</span>
+      </a>
+      <a href="login.html" class="btn btn-secondary" style="padding:14px 28px; font-size:1.05rem;">
+        Sign In to Your Khata
+      </a>
+    </div>
+
+    <!-- Features Grid -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:24px; text-align:left; margin-bottom:60px;">
+      <div class="card" style="padding:28px;">
+        <div style="font-size:2.2rem; margin-bottom:14px;">👨‍💼</div>
+        <h3 style="font-size:1.15rem; font-weight:700; margin-bottom:8px;">Dad – Income Manager</h3>
+        <p style="color:var(--text-muted); font-size:0.9rem; line-height:1.5;">
+          Add and manage all family income sources. Review household spending, ask questions on expenses, and track savings growth.
+        </p>
+      </div>
+
+      <div class="card" style="padding:28px;">
+        <div style="font-size:2.2rem; margin-bottom:14px;">👩‍💼</div>
+        <h3 style="font-size:1.15rem; font-weight:700; margin-bottom:8px;">Mom – Expense Manager</h3>
+        <p style="color:var(--text-muted); font-size:0.9rem; line-height:1.5;">
+          Record household bills, groceries and shopping. Upload receipts, reply to Dad's remarks, and monitor monthly budget alerts.
+        </p>
+      </div>
+
+      <div class="card" style="padding:28px;">
+        <div style="font-size:2.2rem; margin-bottom:14px;">⚡</div>
+        <h3 style="font-size:1.15rem; font-weight:700; margin-bottom:8px;">Real-Time Synchronization</h3>
+        <p style="color:var(--text-muted); font-size:0.9rem; line-height:1.5;">
+          Powered by Firebase Firestore real-time sync. When Dad logs income or Mom uploads a receipt, both devices reflect the new balance instantly.
+        </p>
+      </div>
+
+      <div class="card" style="padding:28px;">
+        <div style="font-size:2.2rem; margin-bottom:14px;">💬</div>
+        <h3 style="font-size:1.15rem; font-weight:700; margin-bottom:8px;">Remarks & WhatsApp</h3>
+        <p style="color:var(--text-muted); font-size:0.9rem; line-height:1.5;">
+          Discuss any expense right inside the transaction thread, or click to open prefilled WhatsApp messages directly with your partner.
+        </p>
+      </div>
+
+      <div class="card" style="padding:28px;">
+        <div style="font-size:2.2rem; margin-bottom:14px;">🔔</div>
+        <h3 style="font-size:1.15rem; font-weight:700; margin-bottom:8px;">Smart Budget Thresholds</h3>
+        <p style="color:var(--text-muted); font-size:0.9rem; line-height:1.5;">
+          Set monthly limits and receive proactive notifications at 70%, 90% and 100% spending marks to keep household finances on track.
+        </p>
+      </div>
+
+      <div class="card" style="padding:28px;">
+        <div style="font-size:2.2rem; margin-bottom:14px;">📱</div>
+        <h3 style="font-size:1.15rem; font-weight:700; margin-bottom:8px;">Installable PWA & Offline</h3>
+        <p style="color:var(--text-muted); font-size:0.9rem; line-height:1.5;">
+          Install directly on Android, iOS or Desktop. Works seamlessly offline with automatic background sync when reconnected.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <footer style="border-top:1px solid var(--border-color); padding:32px 24px; text-align:center; font-size:0.85rem; color:var(--text-muted);">
+    <p>GharKhata – Built for Families. Persistent SQLite Database with Real-Time Cloud Sync.</p>
+  </footer>
+
+  <script src="js/theme.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    // If already logged in, redirect to dashboard
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.GharKhataAuth && window.GharKhataAuth.isAuthenticated()) {
+        window.location.href = 'dashboard.html';
+      }
+    });
+  </script>
+</body>
+</html>
+

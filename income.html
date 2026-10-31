@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Income Manager – GharKhata</title>
+  <meta name="theme-color" content="#065f46">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <aside class="app-sidebar"></aside>
+
+    <main class="main-content">
+      <header class="app-topbar">
+        <div class="topbar-brand">
+          <div class="sidebar-brand-icon" style="width:36px; height:36px;">💰</div>
+          <div>
+            <h1>Household Income Ledger</h1>
+            <div class="topbar-tagline">Managed exclusively by Dad • Viewable by Mom</div>
+          </div>
+        </div>
+        <div class="topbar-actions"></div>
+      </header>
+
+      <!-- Role-based notice if logged in as Mom -->
+      <div id="income-role-notice"></div>
+
+      <!-- Overview Stats -->
+      <section class="stats-grid" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); margin-bottom:24px;">
+        <div class="stat-card income">
+          <div class="stat-header">
+            <span class="stat-label">Total Household Income</span>
+            <div class="stat-icon income">↗</div>
+          </div>
+          <div class="stat-value text-income" id="income-total-amount">₹0</div>
+          <div class="stat-footer">
+            <span id="income-total-count">0 entries</span>
+            <span class="badge badge-dad">Dad's Portfolio</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Filter & Action Toolbar -->
+      <div class="card" style="margin-bottom:20px; padding:16px 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+          <div style="display:flex; gap:12px; flex:1; min-width:280px; flex-wrap:wrap;">
+            <input type="text" id="filter-income-search" class="form-control" placeholder="Search income descriptions or notes..." style="max-width:260px;" />
+            <select id="filter-income-category" class="form-control" style="max-width:180px;">
+              <option value="all">All Categories</option>
+            </select>
+            <select id="filter-income-mode" class="form-control" style="max-width:160px;">
+              <option value="all">All Payment Modes</option>
+              <option value="Bank">Bank</option>
+              <option value="UPI">UPI</option>
+              <option value="Cash">Cash</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <button id="btn-add-income" class="btn btn-primary">
+            <span>+</span> Record Income
+          </button>
+        </div>
+      </div>
+
+      <!-- Income List Container -->
+      <div id="income-list-container">
+        <div class="skeleton skeleton-card" style="margin-bottom:10px;"></div>
+        <div class="skeleton skeleton-card" style="margin-bottom:10px;"></div>
+      </div>
+    </main>
+
+    <nav class="mobile-bottom-nav"></nav>
+  </div>
+
+  <!-- Add/Edit Income Modal -->
+  <div id="income-modal-backdrop" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="income-modal-title">Record New Income</h3>
+        <button class="modal-close" onclick="window.GharKhataIncome.closeModal()">&times;</button>
+      </div>
+      <form id="income-modal-form">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Amount (INR) <span class="required">*</span></label>
+              <input type="number" id="income-amount" class="form-control" step="0.01" min="1" placeholder="e.g. 75000" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Category <span class="required">*</span></label>
+              <select id="income-category-select" class="form-control" required></select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description <span class="required">*</span></label>
+            <input type="text" id="income-description" class="form-control" placeholder="e.g. Monthly Salary Credit" required />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Date <span class="required">*</span></label>
+              <input type="date" id="income-date" class="form-control" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Payment Mode <span class="required">*</span></label>
+              <select id="income-payment-mode" class="form-control" required>
+                <option value="Bank">Bank Transfer / NEFT</option>
+                <option value="UPI">UPI</option>
+                <option value="Cash">Cash</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Optional Notes</label>
+            <textarea id="income-notes" class="form-control" rows="2" placeholder="Reference ID or employer notes..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="window.GharKhataIncome.closeModal()">Cancel</button>
+          <button type="submit" id="income-submit-btn" class="btn btn-primary btn-sm">Save Income</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/theme.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/database.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/whatsapp.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/income.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
+

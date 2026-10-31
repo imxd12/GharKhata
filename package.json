@@ -1,0 +1,20 @@
+{
+  "name": "gharkhata",
+  "version": "1.0.0",
+  "description": "GharKhata – Your Family. Your Money. One Khata. Modern, responsive family income and expense management application.",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node --watch backend/server.js"
+  },
+  "keywords": [
+    "personal-finance",
+    "family-budget",
+    "pwa",
+    "sqlite",
+    "firebase",
+    "gharkhata"
+  ],
+  "author": "Imad Innovations",
+  "license": "ISC"
+}

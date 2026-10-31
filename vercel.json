@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.js" },
+    { "source": "/uploads/(.*)", "destination": "/api/index.js" },
+    { "source": "/css/(.*)", "destination": "/css/$1" },
+    { "source": "/js/(.*)", "destination": "/js/$1" },
+    { "source": "/assets/(.*)", "destination": "/assets/$1" },
+    { "source": "/manifest.json", "destination": "/manifest.json" },
+    { "source": "/sw.js", "destination": "/sw.js" },
+    { "source": "/firebase-config.js", "destination": "/firebase-config.js" },
+    { "source": "/login", "destination": "/login.html" },
+    { "source": "/register", "destination": "/register.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/income", "destination": "/income.html" },
+    { "source": "/expenses", "destination": "/expenses.html" },
+    { "source": "/transactions", "destination": "/transactions.html" },
+    { "source": "/analytics", "destination": "/analytics.html" },
+    { "source": "/discussions", "destination": "/discussions.html" },
+    { "source": "/reports", "destination": "/reports.html" },
+    { "source": "/profile", "destination": "/profile.html" },
+    { "source": "/settings", "destination": "/settings.html" }
+  ]
+}

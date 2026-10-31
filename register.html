@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register Household – GharKhata</title>
+  <meta name="theme-color" content="#065f46">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body class="auth-page">
+
+  <div class="auth-container" style="max-width:1040px;">
+    <!-- Left Brand Side -->
+    <div class="auth-brand-side">
+      <div class="auth-brand-top">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+          <div style="width:36px; height:36px; border-radius:var(--radius-md); background:#ffffff; color:var(--primary); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.1rem;">GK</div>
+          <span style="font-size:1.35rem; font-weight:800;">GharKhata</span>
+        </div>
+        <h2>One Family. One Khata.</h2>
+        <div class="auth-tagline">Connect Dad and Mom with one unique Household ID.</div>
+
+        <div class="auth-features">
+          <div class="auth-feature-item">
+            <span class="auth-feature-icon">👨‍💼</span>
+            <div>
+              <strong>Dad (Income Manager):</strong>
+              <div style="font-size:0.8rem; opacity:0.85;">Records income, tracks household cash flow & requests expense remarks.</div>
+            </div>
+          </div>
+          <div class="auth-feature-item">
+            <span class="auth-feature-icon">👩‍💼</span>
+            <div>
+              <strong>Mom (Expense Manager):</strong>
+              <div style="font-size:0.8rem; opacity:0.85;">Logs daily expenses, attaches receipt bills & manages category budgets.</div>
+            </div>
+          </div>
+          <div class="auth-feature-item">
+            <span class="auth-feature-icon">🔑</span>
+            <div>
+              <strong>Household ID Pairing:</strong>
+              <div style="font-size:0.8rem; opacity:0.85;">First member generates the code. Second member enters it to pair instantly.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="auth-brand-footer">
+        Strict single-ledger isolation • No duplicate roles permitted
+      </div>
+    </div>
+
+    <!-- Right Form Side -->
+    <div class="auth-form-side">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <span class="badge badge-dad">Step 1: Choose Role</span>
+        <button class="btn-icon theme-toggle-btn" title="Toggle Theme" style="width:34px; height:34px;">🌙</button>
+      </div>
+
+      <div class="auth-form-header">
+        <h3>Create Your Account</h3>
+        <p>Select your family role and pair with your household.</p>
+      </div>
+
+      <div id="register-alert" class="auth-alert"></div>
+
+      <form id="register-form">
+        <!-- Role Selector -->
+        <div class="form-group">
+          <label class="form-label">Your Family Role <span class="required">*</span></label>
+          <div class="role-selector">
+            <div class="role-card selected dad" data-role="Dad" onclick="selectRole('Dad')">
+              <div class="role-card-icon">👨</div>
+              <div class="role-card-title">Dad</div>
+              <div class="role-card-desc">Income Manager</div>
+            </div>
+            <div class="role-card" data-role="Mom" onclick="selectRole('Mom')">
+              <div class="role-card-icon">👩</div>
+              <div class="role-card-title">Mom</div>
+              <div class="role-card-desc">Expense Manager</div>
+            </div>
+          </div>
+          <input type="hidden" id="register-role" name="role" value="Dad" />
+        </div>
+
+        <!-- Household Mode Tabs -->
+        <div class="form-group">
+          <label class="form-label">Household Pairing</label>
+          <div class="pairing-tabs">
+            <button type="button" class="pairing-tab active" id="tab-create-hh" onclick="switchHouseholdMode('create')">
+              Create New Household
+            </button>
+            <button type="button" class="pairing-tab" id="tab-join-hh" onclick="switchHouseholdMode('join')">
+              Join Existing Household
+            </button>
+          </div>
+        </div>
+
+        <!-- Conditional Household Inputs -->
+        <div id="section-create-hh">
+          <div class="form-group">
+            <label class="form-label" for="register-hh-name">Household Name (Optional)</label>
+            <input type="text" id="register-hh-name" class="form-control" placeholder="e.g. The Family Khata" />
+            <small style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">
+              A unique Household ID (e.g. GHK-82M9-XP41) will be generated for your partner to join.
+            </small>
+          </div>
+        </div>
+
+        <div id="section-join-hh" class="hidden">
+          <div class="form-group">
+            <label class="form-label" for="register-hh-id">Enter Household ID <span class="required">*</span></label>
+            <input type="text" id="register-hh-id" class="form-control font-mono" placeholder="GHK-XXXX-YYYY" style="text-transform:uppercase;" />
+            <small style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">
+              Obtain the 12-character Household ID from your partner's dashboard or invitation.
+            </small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="register-fullname">Full Name <span class="required">*</span></label>
+            <input type="text" id="register-fullname" class="form-control" placeholder="e.g. Rajesh Kumar" required autocomplete="name" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="register-phone">Phone Number <span class="required">*</span></label>
+            <input type="tel" id="register-phone" class="form-control" placeholder="e.g. 9876543210" required autocomplete="tel" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="register-email">Email Address <span class="required">*</span></label>
+          <input type="email" id="register-email" class="form-control" placeholder="you@family.com" required autocomplete="email" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="register-password">Password <span class="required">*</span></label>
+            <input type="password" id="register-password" class="form-control" placeholder="At least 6 characters" required autocomplete="new-password" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="register-confirm-password">Confirm Password <span class="required">*</span></label>
+            <input type="password" id="register-confirm-password" class="form-control" placeholder="Re-type password" required autocomplete="new-password" />
+          </div>
+        </div>
+
+        <button type="submit" id="register-submit-btn" class="btn btn-primary" style="width:100%; margin-top:8px; padding:12px;">
+          Complete Registration
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        Already have an account? <a href="login.html">Sign In Here</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/theme.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    let hhMode = 'create';
+
+    function selectRole(role) {
+      document.getElementById('register-role').value = role;
+      document.querySelectorAll('.role-card').forEach(card => {
+        card.classList.remove('selected', 'dad', 'mom');
+        if (card.dataset.role === role) {
+          card.classList.add('selected', role.toLowerCase());
+        }
+      });
+    }
+
+    function switchHouseholdMode(mode) {
+      hhMode = mode;
+      const tabCreate = document.getElementById('tab-create-hh');
+      const tabJoin = document.getElementById('tab-join-hh');
+      const secCreate = document.getElementById('section-create-hh');
+      const secJoin = document.getElementById('section-join-hh');
+
+      if (mode === 'create') {
+        tabCreate.classList.add('active');
+        tabJoin.classList.remove('active');
+        secCreate.classList.remove('hidden');
+        secJoin.classList.add('hidden');
+      } else {
+        tabJoin.classList.add('active');
+        tabCreate.classList.remove('active');
+        secJoin.classList.remove('hidden');
+        secCreate.classList.add('hidden');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.GharKhataAuth.redirectIfAuthenticated()) return;
+
+      const form = document.getElementById('register-form');
+      const alertBox = document.getElementById('register-alert');
+      const submitBtn = document.getElementById('register-submit-btn');
+
+      // Check if URL has ?householdId=...
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlHhId = urlParams.get('householdId');
+      if (urlHhId) {
+        switchHouseholdMode('join');
+        document.getElementById('register-hh-id').value = urlHhId.toUpperCase();
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        alertBox.className = 'auth-alert';
+        alertBox.style.display = 'none';
+
+        const role = document.getElementById('register-role').value;
+        const full_name = document.getElementById('register-fullname').value.trim();
+        const phone = document.getElementById('register-phone').value.trim();
+        const email = document.getElementById('register-email').value.trim();
+        const password = document.getElementById('register-password').value;
+        const confirm_password = document.getElementById('register-confirm-password').value;
+
+        if (password !== confirm_password) {
+          alertBox.textContent = 'Password and Confirm Password do not match.';
+          alertBox.className = 'auth-alert error';
+          alertBox.style.display = 'block';
+          return;
+        }
+
+        const payload = {
+          role,
+          full_name,
+          phone,
+          email,
+          password,
+          confirm_password
+        };
+
+        if (hhMode === 'create') {
+          payload.household_name = document.getElementById('register-hh-name').value.trim();
+        } else {
+          const hhId = document.getElementById('register-hh-id').value.trim();
+          if (!hhId) {
+            alertBox.textContent = 'Please provide the Household ID to join.';
+            alertBox.className = 'auth-alert error';
+            alertBox.style.display = 'block';
+            return;
+          }
+          payload.household_id = hhId;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Creating Account...';
+
+        try {
+          await window.GharKhataAuth.register(payload);
+          window.location.href = 'dashboard.html';
+        } catch (err) {
+          alertBox.textContent = err.message;
+          alertBox.className = 'auth-alert error';
+          alertBox.style.display = 'block';
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Complete Registration';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
+

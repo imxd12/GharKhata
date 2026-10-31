@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login – GharKhata</title>
+  <meta name="theme-color" content="#065f46">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body class="auth-page">
+
+  <div class="auth-container">
+    <!-- Brand Info Panel -->
+    <div class="auth-brand-side">
+      <div class="auth-brand-top">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+          <div style="width:36px; height:36px; border-radius:var(--radius-md); background:#ffffff; color:var(--primary); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.1rem;">GK</div>
+          <span style="font-size:1.35rem; font-weight:800;">GharKhata</span>
+        </div>
+        <h2>Welcome Back</h2>
+        <div class="auth-tagline">"Your Family. Your Money. One Khata."</div>
+
+        <div class="auth-features">
+          <div class="auth-feature-item">
+            <span class="auth-feature-icon">⚡</span>
+            <span>Instant real-time sync between Dad and Mom devices.</span>
+          </div>
+          <div class="auth-feature-item">
+            <span class="auth-feature-icon">🔒</span>
+            <span>Secure household-isolated financial database.</span>
+          </div>
+          <div class="auth-feature-item">
+            <span class="auth-feature-icon">📎</span>
+            <span>Receipt attachments and transparent expense discussions.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="auth-brand-footer">
+        © 2026 GharKhata. Secure SQLite Financial Ledger.
+      </div>
+    </div>
+
+    <!-- Form Side -->
+    <div class="auth-form-side">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <span class="badge badge-income">Family Portal</span>
+        <button class="btn-icon theme-toggle-btn" title="Toggle Theme" style="width:34px; height:34px;">🌙</button>
+      </div>
+
+      <div class="auth-form-header">
+        <h3>Sign In to Your Khata</h3>
+        <p>Enter your email and password to access your family finances.</p>
+      </div>
+
+      <div id="login-alert" class="auth-alert"></div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="login-email">Email Address <span class="required">*</span></label>
+          <input type="email" id="login-email" class="form-control" placeholder="dad@family.com or mom@family.com" required autocomplete="email" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-password">Password <span class="required">*</span></label>
+          <input type="password" id="login-password" class="form-control" placeholder="Enter your password" required autocomplete="current-password" />
+        </div>
+
+        <button type="submit" id="login-submit-btn" class="btn btn-primary" style="width:100%; margin-top:8px; padding:12px;">
+          Sign In
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        Don't have a household yet? <a href="register.html">Register New Household or Join</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/theme.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Redirect if already logged in
+      if (window.GharKhataAuth.redirectIfAuthenticated()) return;
+
+      const form = document.getElementById('login-form');
+      const alertBox = document.getElementById('login-alert');
+      const submitBtn = document.getElementById('login-submit-btn');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        alertBox.className = 'auth-alert';
+        alertBox.style.display = 'none';
+
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Signing in...';
+
+        try {
+          await window.GharKhataAuth.login(email, password);
+          window.location.href = 'dashboard.html';
+        } catch (err) {
+          alertBox.textContent = err.message;
+          alertBox.className = 'auth-alert error';
+          alertBox.style.display = 'block';
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Sign In';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Khata Timeline – GharKhata</title>
+  <meta name="theme-color" content="#065f46">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <aside class="app-sidebar"></aside>
+
+    <main class="main-content">
+      <header class="app-topbar">
+        <div class="topbar-brand">
+          <div class="sidebar-brand-icon" style="width:36px; height:36px;">📖</div>
+          <div>
+            <h1>Daily Khata Timeline</h1>
+            <div class="topbar-tagline">Unified household ledger showing combined family cash flow</div>
+          </div>
+        </div>
+        <div class="topbar-actions"></div>
+      </header>
+
+      <!-- Filter & Export Controls -->
+      <div class="card" style="margin-bottom:20px; padding:18px 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+          <div style="display:flex; gap:10px; flex:1; min-width:300px; flex-wrap:wrap;">
+            <input type="text" id="khata-filter-search" class="form-control" placeholder="Search Khata entries..." style="max-width:220px;" />
+            <select id="khata-filter-type" class="form-control" style="max-width:140px;">
+              <option value="all">All Types</option>
+              <option value="income">Income Only</option>
+              <option value="expense">Expense Only</option>
+            </select>
+            <select id="khata-filter-mode" class="form-control" style="max-width:150px;">
+              <option value="all">All Modes</option>
+              <option value="UPI">UPI</option>
+              <option value="Cash">Cash</option>
+              <option value="Bank">Bank</option>
+            </select>
+            <input type="date" id="khata-filter-start" class="form-control" style="max-width:150px;" title="Start Date" />
+            <input type="date" id="khata-filter-end" class="form-control" style="max-width:150px;" title="End Date" />
+          </div>
+          <div style="display:flex; gap:10px;">
+            <a href="/api/reports/export/csv" class="btn btn-secondary btn-sm" id="khata-btn-export-csv" target="_blank">
+              <span>📥 Export CSV</span>
+            </a>
+            <button class="btn btn-outline btn-sm" onclick="window.print()">
+              <span>🖨️ Print Khata</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Khata Stream List -->
+      <div id="khata-timeline-container">
+        <div class="skeleton skeleton-card" style="margin-bottom:10px;"></div>
+        <div class="skeleton skeleton-card" style="margin-bottom:10px;"></div>
+        <div class="skeleton skeleton-card"></div>
+      </div>
+    </main>
+
+    <nav class="mobile-bottom-nav"></nav>
+  </div>
+
+  <script src="js/theme.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/database.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/whatsapp.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/discussions.js"></script>
+  <script src="js/expenses.js"></script>
+  <script src="js/app.js"></script>
+
+  <script>
+    async function loadKhataTimeline() {
+      const listEl = document.getElementById('khata-timeline-container');
+      if (!listEl) return;
+
+      const search = document.getElementById('khata-filter-search')?.value || '';
+      const type = document.getElementById('khata-filter-type')?.value || 'all';
+      const mode = document.getElementById('khata-filter-mode')?.value || 'all';
+      const start = document.getElementById('khata-filter-start')?.value || '';
+      const end = document.getElementById('khata-filter-end')?.value || '';
+
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (type !== 'all') params.append('type', type);
+      if (mode !== 'all') params.append('payment_mode', mode);
+      if (start) params.append('start_date', start);
+      if (end) params.append('end_date', end);
+
+      try {
+        const res = await window.GharKhataDB.request(`/api/reports/transactions?${params.toString()}`);
+        const transactions = res.data || [];
+
+        if (transactions.length === 0) {
+          listEl.innerHTML = `
+            <div class="card empty-state">
+              <div class="empty-state-icon">📖</div>
+              <div class="empty-state-title">No Khata Transactions Found</div>
+              <p class="empty-state-description">Try adjusting your filters or record a new transaction.</p>
+            </div>
+          `;
+          return;
+        }
+
+        let html = '<div class="transaction-list">';
+        transactions.forEach(t => {
+          const isInc = t.type === 'income';
+          const formattedDate = new Date(t.date).toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+          });
+
+          const receiptBadge = t.receipt_url
+            ? `<button class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:0.75rem;" onclick="window.GharKhataExpenses.viewReceipt('${t.receipt_url}', '${t.description}')">📎 Receipt</button>`
+            : '';
+
+          const remarksBadge = !isInc ? (
+            t.remarks_count > 0
+              ? `<span class="badge badge-resolved" style="cursor:pointer;" onclick="window.GharKhataDiscussions.openExpenseModal(${t.id})">💬 ${t.remarks_count}</span>`
+              : `<span class="badge badge-secondary" style="cursor:pointer; opacity:0.8;" onclick="window.GharKhataDiscussions.openExpenseModal(${t.id})">+ Remark</span>`
+          ) : '';
+
+          html += `
+            <div class="transaction-item" style="padding:14px 18px;">
+              <div class="transaction-left">
+                <div class="transaction-icon ${isInc ? 'income' : 'expense'}">
+                  <span>${isInc ? '↗' : '↙'}</span>
+                </div>
+                <div class="transaction-meta">
+                  <span class="transaction-title">${t.description}</span>
+                  <span class="transaction-subtitle">
+                    <span>${formattedDate} ${t.time || ''}</span> •
+                    <span class="badge ${isInc ? 'badge-income' : 'badge-expense'}">${t.category}</span> •
+                    <span>${t.payment_mode}</span> •
+                    <span class="badge ${isInc ? 'badge-dad' : 'badge-mom'}">${t.added_by_role}</span>
+                    ${t.notes ? `• <span>📝 ${t.notes}</span>` : ''}
+                  </span>
+                </div>
+              </div>
+              <div class="transaction-right">
+                <span class="transaction-amount ${isInc ? 'income' : 'expense'}">
+                  ${isInc ? '+' : '-'}₹${Number(t.amount).toLocaleString()}
+                </span>
+                <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
+                  ${receiptBadge}
+                  ${remarksBadge}
+                  <button class="btn btn-outline btn-sm" style="padding:2px 8px;" onclick="handleWhatsAppShare(${JSON.stringify(t).replace(/"/g, '&quot;')})">
+                    <span style="color:#25d366;">💬 WhatsApp</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+
+        listEl.innerHTML = html;
+      } catch (err) {
+        listEl.innerHTML = `<div class="empty-state"><p>${err.message}</p></div>`;
+      }
+    }
+
+    function handleWhatsAppShare(t) {
+      if (t.type === 'income') {
+        window.GharKhataWhatsApp.shareIncomeUpdate(t);
+      } else {
+        const user = window.GharKhataAuth.getUser();
+        if (user && user.role === 'Dad') {
+          window.GharKhataWhatsApp.askAboutExpense(t);
+        } else {
+          window.GharKhataWhatsApp.replyAboutExpense(t, 'Regarding this transaction in GharKhata:');
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadKhataTimeline();
+
+      // Filter events
+      const searchInput = document.getElementById('khata-filter-search');
+      if (searchInput) {
+        let debounceTimer;
+        searchInput.addEventListener('input', () => {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(loadKhataTimeline, 300);
+        });
+      }
+
+      ['khata-filter-type', 'khata-filter-mode', 'khata-filter-start', 'khata-filter-end'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', loadKhataTimeline);
+      });
+
+      window.addEventListener('gharkhata:sync', loadKhataTimeline);
+    });
+  </script>
+</body>
+</html>
+

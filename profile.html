@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Profile – GharKhata</title>
+  <meta name="theme-color" content="#065f46">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <aside class="app-sidebar"></aside>
+
+    <main class="main-content">
+      <header class="app-topbar">
+        <div class="topbar-brand">
+          <div class="sidebar-brand-icon" style="width:36px; height:36px;">👤</div>
+          <div>
+            <h1>Personal Profile & Security</h1>
+            <div class="topbar-tagline">Manage your account credentials and security settings</div>
+          </div>
+        </div>
+        <div class="topbar-actions"></div>
+      </header>
+
+      <div class="dashboard-grid">
+        <!-- Left: Account Details & Password Change -->
+        <div>
+          <!-- Profile Card -->
+          <div class="card" style="margin-bottom:24px;">
+            <div class="card-header">
+              <h3 class="card-title">My Account Profile</h3>
+              <span id="profile-role-badge" class="badge">Role</span>
+            </div>
+            <div class="card-body">
+              <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
+                <div id="profile-avatar" class="sidebar-user-avatar" style="width:56px; height:56px; font-size:1.8rem;"></div>
+                <div>
+                  <h2 id="profile-name" style="font-size:1.3rem; font-weight:800; color:var(--text-main);">Loading...</h2>
+                  <div id="profile-email" style="font-size:0.85rem; color:var(--text-muted);">email@example.com</div>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Phone Number (WhatsApp)</label>
+                  <input type="text" id="profile-phone" class="form-control" readonly style="background:var(--bg-subtle);" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Assigned Household Role</label>
+                  <input type="text" id="profile-role-text" class="form-control" readonly style="background:var(--bg-subtle);" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Change Password Card -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Change Account Password</h3>
+            </div>
+            <form id="profile-password-form">
+              <div class="card-body">
+                <div class="form-group">
+                  <label class="form-label">Current Password <span class="required">*</span></label>
+                  <input type="password" id="pw-current" class="form-control" placeholder="Enter your current password" required />
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">New Password <span class="required">*</span></label>
+                    <input type="password" id="pw-new" class="form-control" placeholder="At least 6 characters" required />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Confirm New Password <span class="required">*</span></label>
+                    <input type="password" id="pw-confirm" class="form-control" placeholder="Re-type new password" required />
+                  </div>
+                </div>
+              </div>
+              <div class="card-footer" style="text-align:right;">
+                <button type="submit" id="btn-save-password" class="btn btn-primary btn-sm">Update Password</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Right: Partner & Household Pairing -->
+        <div>
+          <!-- Household Pairing Card -->
+          <div class="card" style="margin-bottom:24px;">
+            <div class="card-header">
+              <h3 class="card-title">Household Pairing</h3>
+            </div>
+            <div class="card-body">
+              <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
+                Your unique Household ID connects Dad and Mom into the same ledger.
+              </div>
+              <div class="household-id-preview" style="margin-bottom:12px;">
+                <span class="household-id-code" id="profile-household-id">GHK-XXXX-YYYY</span>
+                <button class="btn btn-outline btn-sm" onclick="copyHouseholdCode()">📋 Copy</button>
+              </div>
+              <p style="font-size:0.78rem; color:var(--text-subtle);">
+                Only one Dad and one Mom can be paired per household. Duplicate registrations are strictly prevented.
+              </p>
+            </div>
+          </div>
+
+          <!-- Partner Card -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Paired Partner</h3>
+            </div>
+            <div class="card-body" id="profile-partner-box">
+              <div class="skeleton skeleton-card"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <nav class="mobile-bottom-nav"></nav>
+  </div>
+
+  <script src="js/theme.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/database.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/whatsapp.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/app.js"></script>
+
+  <script>
+    async function loadProfile() {
+      const user = window.GharKhataAuth.getUser();
+      if (!user) return;
+
+      document.getElementById('profile-name').textContent = user.full_name;
+      document.getElementById('profile-email').textContent = user.email;
+      document.getElementById('profile-phone').value = user.phone;
+      document.getElementById('profile-role-text').value = `${user.role} (${user.role === 'Dad' ? 'Income Manager' : 'Expense Manager'})`;
+      document.getElementById('profile-household-id').textContent = user.household_id;
+
+      const avatar = document.getElementById('profile-avatar');
+      avatar.textContent = user.role === 'Dad' ? '👨' : '👩';
+
+      const badge = document.getElementById('profile-role-badge');
+      badge.textContent = user.role;
+      badge.className = `badge ${user.role === 'Dad' ? 'badge-dad' : 'badge-mom'}`;
+
+      // Fetch partner
+      try {
+        const res = await window.GharKhataDB.request('/api/auth/me');
+        const partner = res.partner;
+        const partnerBox = document.getElementById('profile-partner-box');
+
+        if (partner) {
+          partnerBox.innerHTML = `
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+              <div class="sidebar-user-avatar" style="width:44px; height:44px; font-size:1.3rem;">
+                ${partner.role === 'Dad' ? '👨' : '👩'}
+              </div>
+              <div>
+                <h4 style="font-size:0.95rem; font-weight:700;">${partner.full_name}</h4>
+                <div style="font-size:0.8rem; color:var(--text-muted);">${partner.role} • ${partner.phone}</div>
+              </div>
+            </div>
+            <button class="btn btn-whatsapp btn-sm" style="width:100%;" onclick="window.GharKhataWhatsApp.chatWithPartner()">
+              <span>💬 Message on WhatsApp</span>
+            </button>
+          `;
+        } else {
+          partnerBox.innerHTML = `
+            <div style="text-align:center; padding:12px 0;">
+              <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;">
+                No partner has joined yet. Share your Household ID with your ${user.role === 'Dad' ? 'wife (Mom)' : 'husband (Dad)'}.
+              </p>
+              <button class="btn btn-primary btn-sm" onclick="copyHouseholdCode()">Copy Invite Code</button>
+            </div>
+          `;
+        }
+      } catch (e) {
+        console.warn('Partner load error:', e);
+      }
+    }
+
+    function copyHouseholdCode() {
+      const user = window.GharKhataAuth.getUser();
+      if (user && window.GharKhataApp) {
+        window.GharKhataApp.copyHouseholdId(user.household_id);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadProfile();
+
+      const pwForm = document.getElementById('profile-password-form');
+      if (pwForm) {
+        pwForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const cur = document.getElementById('pw-current').value;
+          const nw = document.getElementById('pw-new').value;
+          const cf = document.getElementById('pw-confirm').value;
+
+          if (nw !== cf) {
+            window.GharKhataNotifications.toast('New passwords do not match.', 'error');
+            return;
+          }
+
+          const btn = document.getElementById('btn-save-password');
+          btn.disabled = true;
+          btn.textContent = 'Updating...';
+
+          try {
+            await window.GharKhataAuth.changePassword(cur, nw, cf);
+            window.GharKhataNotifications.toast('Password updated successfully!', 'success');
+            pwForm.reset();
+          } catch (err) {
+            window.GharKhataNotifications.toast(err.message, 'error');
+          } finally {
+            btn.disabled = false;
+            btn.textContent = 'Update Password';
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
+
