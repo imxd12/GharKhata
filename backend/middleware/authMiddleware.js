@@ -3,7 +3,8 @@
  * Enforces server-side permissions and household isolation.
  */
 
-const { verifyToken } = require('../auth');
+const crypto = require('node:crypto');
+const { verifyToken, hashPassword } = require('../auth');
 const { queryOne, execute } = require('../database');
 
 /**
@@ -63,11 +64,12 @@ function authenticateUser(req, res, next) {
         [householdId, `${fallbackName}'s Household`, now, now]
       );
 
-      // 2. Insert or replace user
+      // 2. Insert user if missing (never overwrite existing credentials with a stub!)
+      const dummyCreds = hashPassword(crypto.randomBytes(32).toString('hex'));
       execute(
-        `INSERT OR REPLACE INTO users (id, household_id, full_name, phone, email, password_hash, salt, role, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, 'SESSION_STUB', 'SESSION_SALT', ?, ?, ?)`,
-        [decoded.userId, householdId, fallbackName, fallbackPhone, fallbackEmail, decoded.role, now, now]
+        `INSERT OR IGNORE INTO users (id, household_id, full_name, phone, email, password_hash, salt, role, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [decoded.userId, householdId, fallbackName, fallbackPhone, fallbackEmail, dummyCreds.hash, dummyCreds.salt, decoded.role, now, now]
       );
 
       // 3. Re-query user

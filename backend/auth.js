@@ -24,9 +24,24 @@ function hashPassword(password) {
  * Verify a password against stored salt and hash
  */
 function verifyPassword(password, salt, storedHash) {
-  const derivedKey = crypto.scryptSync(password, salt, 64);
-  const calculatedHash = derivedKey.toString('hex');
-  return crypto.timingSafeEqual(Buffer.from(calculatedHash), Buffer.from(storedHash));
+  if (!password || !salt || !storedHash || typeof password !== 'string' || typeof salt !== 'string' || typeof storedHash !== 'string') {
+    return false;
+  }
+  try {
+    const derivedKey = crypto.scryptSync(password, salt, 64);
+    const calculatedHash = derivedKey.toString('hex');
+    const bufCalculated = Buffer.from(calculatedHash, 'utf8');
+    const bufStored = Buffer.from(storedHash, 'utf8');
+
+    // crypto.timingSafeEqual throws RangeError if buffer lengths differ
+    if (bufCalculated.length !== bufStored.length) {
+      return false;
+    }
+    return crypto.timingSafeEqual(bufCalculated, bufStored);
+  } catch (err) {
+    console.error('Password verification exception:', err.message);
+    return false;
+  }
 }
 
 /**
