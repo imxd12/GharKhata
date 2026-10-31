@@ -341,9 +341,145 @@
 
   <script>
     // Dashboard Controller
+    function renderDashboardMetrics(data) {
+      if (!data || !data.summary) return;
+      const s = data.summary;
+
+      // Populate Stats
+      document.getElementById('stat-total-income').textContent = `₹${(s.lifetime_income || 0).toLocaleString()}`;
+      document.getElementById('stat-month-income').textContent = `This Month: ₹${(s.month_income || 0).toLocaleString()}`;
+
+      document.getElementById('stat-total-expense').textContent = `₹${(s.lifetime_expense || 0).toLocaleString()}`;
+      document.getElementById('stat-month-expense').textContent = `This Month: ₹${(s.month_expense || 0).toLocaleString()}`;
+
+      document.getElementById('stat-remaining-balance').textContent = `₹${(s.balance || 0).toLocaleString()}`;
+      const savingsBadge = document.getElementById('stat-savings-status');
+      if (s.balance < 0) {
+        savingsBadge.textContent = "Deficit";
+        savingsBadge.className = "badge badge-expense";
+      } else {
+        savingsBadge.textContent = "Surplus";
+        savingsBadge.className = "badge badge-resolved";
+      }
+
+      document.getElementById('stat-monthly-budget').textContent = `₹${(s.monthly_budget || 50000).toLocaleString()}`;
+      document.getElementById('stat-budget-percent').textContent = `${s.budget_spent_percent || 0}% Utilized`;
+
+      // Progress Fill
+      const fill = document.getElementById('budget-progress-fill');
+      const fillPercent = Math.min(s.budget_spent_percent || 0, 100);
+      fill.style.width = `${fillPercent}%`;
+      fill.className = 'budget-progress-fill';
+      if ((s.budget_spent_percent || 0) >= 100) {
+        fill.classList.add('danger');
+      } else if ((s.budget_spent_percent || 0) >= 70) {
+        fill.classList.add('warning');
+      }
+
+      const budgetBadge = document.getElementById('stat-budget-badge');
+      if ((s.budget_spent_percent || 0) >= 100) {
+        budgetBadge.textContent = "Exceeded";
+        budgetBadge.className = "badge badge-expense";
+      } else if ((s.budget_spent_percent || 0) >= 90) {
+        budgetBadge.textContent = "Critical";
+        budgetBadge.className = "badge badge-expense";
+      } else if ((s.budget_spent_percent || 0) >= 70) {
+        budgetBadge.textContent = "Alert";
+        budgetBadge.className = "badge badge-pending";
+      } else {
+        budgetBadge.textContent = "On Track";
+        budgetBadge.className = "badge badge-income";
+      }
+
+      document.getElementById('budget-progress-text').textContent =
+        `Spent ₹${(s.month_expense || 0).toLocaleString()} of ₹${(s.monthly_budget || 50000).toLocaleString()} monthly budget (${s.budget_spent_percent || 0}%)`;
+
+      // Partner Hub
+      const user = window.GharKhataAuth ? window.GharKhataAuth.getUser() : null;
+      const partner = data.partner;
+      const partnerEl = document.getElementById('partner-hub-content');
+      if (partner) {
+        partnerEl.innerHTML = `
+          <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px;">
+            <div class="sidebar-user-avatar" style="width:48px; height:48px; font-size:1.4rem;">
+              ${partner.role === 'Dad' ? '👨' : '👩'}
+            </div>
+            <div>
+              <h4 style="font-size:1rem; font-weight:700;">${partner.full_name}</h4>
+              <div style="font-size:0.8rem; color:var(--text-muted);">${partner.role} • ${partner.phone}</div>
+            </div>
+          </div>
+          <button class="btn btn-whatsapp btn-sm" style="width:100%;" onclick="window.GharKhataWhatsApp.chatWithPartner()">
+            <span>💬 WhatsApp ${partner.role}</span>
+          </button>
+        `;
+      } else if (user) {
+        partnerEl.innerHTML = `
+          <div style="text-align:center; padding:12px 0;">
+            <div style="font-size:2rem; margin-bottom:6px;">🤝</div>
+            <h4 style="font-size:0.95rem; font-weight:700;">Waiting for Partner to Join</h4>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">
+              Share your Household ID: <strong>${user.household_id}</strong>
+            </p>
+            <button class="btn btn-outline btn-sm" onclick="window.GharKhataApp.copyHouseholdId('${user.household_id}')">
+              📋 Copy Household Code
+            </button>
+          </div>
+        `;
+      }
+
+      // Recent Transactions
+      const recents = data.recent_transactions || [];
+      const recentsEl = document.getElementById('dash-recent-transactions');
+      if (recents.length === 0) {
+        recentsEl.innerHTML = '<div class="empty-state"><p>No transactions recorded yet.</p></div>';
+      } else {
+        let rHtml = '<div class="transaction-list">';
+        recents.forEach(t => {
+          const isInc = t.type === 'income';
+          rHtml += `
+            <div class="transaction-item" style="padding:10px 14px;">
+              <div class="transaction-left">
+                <div class="transaction-icon ${isInc ? 'income' : 'expense'}" style="width:36px; height:36px; font-size:1rem;">
+                  <span>${isInc ? '↗' : '↙'}</span>
+                </div>
+                <div class="transaction-meta">
+                  <span class="transaction-title" style="font-size:0.9rem;">${t.description}</span>
+                  <span class="transaction-subtitle">
+                    <span>${t.date}</span> •
+                    <span>${t.category}</span> •
+                    <span class="badge ${isInc ? 'badge-dad' : 'badge-mom'}" style="padding:1px 6px; font-size:0.65rem;">${t.managed_by || (isInc ? 'Dad' : 'Mom')}</span>
+                  </span>
+                </div>
+              </div>
+              <div class="transaction-right">
+                <span class="transaction-amount ${isInc ? 'income' : 'expense'}" style="font-size:0.95rem;">
+                  ${isInc ? '+' : '-'}₹${Number(t.amount).toLocaleString()}
+                </span>
+                ${!isInc && t.remarks_count > 0 ? `
+                  <span class="badge badge-resolved" style="cursor:pointer;" onclick="window.GharKhataDiscussions.openExpenseModal('${t.id}')">💬 ${t.remarks_count}</span>
+                ` : ''}
+              </div>
+            </div>
+          `;
+        });
+        rHtml += '</div>';
+        recentsEl.innerHTML = rHtml;
+      }
+
+      // Render charts
+      if (window.GharKhataAnalytics) {
+        window.GharKhataAnalytics.renderComparisonChart(data.monthly_trend || []);
+        window.GharKhataAnalytics.renderCategoryChart(data.category_breakdown || []);
+      }
+    }
+
     async function loadDashboardData() {
-      const user = window.GharKhataAuth.getUser();
+      const user = window.GharKhataAuth ? window.GharKhataAuth.getUser() : null;
       if (!user) return;
+
+      const householdId = user.household_id;
+      const DASH_CACHE_KEY = `gharkhata_dashboard_data_${householdId}`;
 
       // Customize banner for role
       const isDad = user.role === 'Dad';
@@ -383,135 +519,69 @@
         waBtn.onclick = () => window.GharKhataWhatsApp.chatWithPartner();
       }
 
+      // 1. Immediately render from local cached snapshot if available
+      try {
+        const cachedRaw = localStorage.getItem(DASH_CACHE_KEY);
+        if (cachedRaw) {
+          renderDashboardMetrics(JSON.parse(cachedRaw));
+        }
+      } catch (e) {}
+
       try {
         const res = await window.GharKhataDB.request('/api/reports/dashboard');
-        const s = res.data.summary;
+        const s = res.data?.summary || {};
 
-        // Populate Stats
-        document.getElementById('stat-total-income').textContent = `₹${s.lifetime_income.toLocaleString()}`;
-        document.getElementById('stat-month-income').textContent = `This Month: ₹${s.month_income.toLocaleString()}`;
+        const isServerEmpty = (s.lifetime_income === 0 && s.lifetime_expense === 0);
+        let localIncomes = [];
+        let localExpenses = [];
+        try {
+          localIncomes = JSON.parse(localStorage.getItem(`gharkhata_incomes_${householdId}`) || '[]');
+          localExpenses = JSON.parse(localStorage.getItem(`gharkhata_expenses_${householdId}`) || '[]');
+        } catch (e) {}
 
-        document.getElementById('stat-total-expense').textContent = `₹${s.lifetime_expense.toLocaleString()}`;
-        document.getElementById('stat-month-expense').textContent = `This Month: ₹${s.month_expense.toLocaleString()}`;
+        if (isServerEmpty && (localIncomes.length > 0 || localExpenses.length > 0)) {
+          console.log('🔄 Cold serverless instance detected. Computing metrics from client storage...');
+          const currentMonthPrefix = new Date().toISOString().substring(0, 7);
 
-        document.getElementById('stat-remaining-balance').textContent = `₹${s.balance.toLocaleString()}`;
-        const savingsBadge = document.getElementById('stat-savings-status');
-        if (s.balance < 0) {
-          savingsBadge.textContent = "Deficit";
-          savingsBadge.className = "badge badge-expense";
+          const totInc = localIncomes.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+          const totExp = localExpenses.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+          const mInc = localIncomes.filter(r => (r.date || '').startsWith(currentMonthPrefix)).reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+          const mExp = localExpenses.filter(r => (r.date || '').startsWith(currentMonthPrefix)).reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+
+          const combinedRecents = [
+            ...localIncomes.map(i => ({ ...i, type: 'income', managed_by: 'Dad' })),
+            ...localExpenses.map(e => ({ ...e, type: 'expense', managed_by: 'Mom' }))
+          ].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 10);
+
+          const synthesized = {
+            summary: {
+              lifetime_income: totInc,
+              lifetime_expense: totExp,
+              balance: totInc - totExp,
+              month_income: mInc,
+              month_expense: mExp,
+              monthly_budget: s.monthly_budget || 50000,
+              budget_spent_percent: Math.round((mExp / (s.monthly_budget || 50000)) * 100),
+              currency: 'INR'
+            },
+            recent_transactions: combinedRecents,
+            partner: res.data?.partner || null,
+            monthly_trend: res.data?.monthly_trend || [],
+            category_breakdown: res.data?.category_breakdown || []
+          };
+
+          renderDashboardMetrics(synthesized);
+
+          // Auto-restore backend
+          window.GharKhataDB.request('/api/sync/restore', {
+            method: 'POST',
+            body: JSON.stringify({ incomes: localIncomes, expenses: localExpenses })
+          }).catch(() => {});
+
         } else {
-          savingsBadge.textContent = "Surplus";
-          savingsBadge.className = "badge badge-resolved";
-        }
-
-        document.getElementById('stat-monthly-budget').textContent = `₹${s.monthly_budget.toLocaleString()}`;
-        document.getElementById('stat-budget-percent').textContent = `${s.budget_spent_percent}% Utilized`;
-
-        // Progress Fill
-        const fill = document.getElementById('budget-progress-fill');
-        const fillPercent = Math.min(s.budget_spent_percent, 100);
-        fill.style.width = `${fillPercent}%`;
-        fill.className = 'budget-progress-fill';
-        if (s.budget_spent_percent >= 100) {
-          fill.classList.add('danger');
-        } else if (s.budget_spent_percent >= 70) {
-          fill.classList.add('warning');
-        }
-
-        const budgetBadge = document.getElementById('stat-budget-badge');
-        if (s.budget_spent_percent >= 100) {
-          budgetBadge.textContent = "Exceeded";
-          budgetBadge.className = "badge badge-expense";
-        } else if (s.budget_spent_percent >= 90) {
-          budgetBadge.textContent = "Critical";
-          budgetBadge.className = "badge badge-expense";
-        } else if (s.budget_spent_percent >= 70) {
-          budgetBadge.textContent = "Alert";
-          budgetBadge.className = "badge badge-pending";
-        } else {
-          budgetBadge.textContent = "On Track";
-          budgetBadge.className = "badge badge-income";
-        }
-
-        document.getElementById('budget-progress-text').textContent =
-          `Spent ₹${s.month_expense.toLocaleString()} of ₹${s.monthly_budget.toLocaleString()} monthly budget (${s.budget_spent_percent}%)`;
-
-        // Partner Hub
-        const partner = res.data.partner;
-        const partnerEl = document.getElementById('partner-hub-content');
-        if (partner) {
-          partnerEl.innerHTML = `
-            <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px;">
-              <div class="sidebar-user-avatar" style="width:48px; height:48px; font-size:1.4rem;">
-                ${partner.role === 'Dad' ? '👨' : '👩'}
-              </div>
-              <div>
-                <h4 style="font-size:1rem; font-weight:700;">${partner.full_name}</h4>
-                <div style="font-size:0.8rem; color:var(--text-muted);">${partner.role} • ${partner.phone}</div>
-              </div>
-            </div>
-            <button class="btn btn-whatsapp btn-sm" style="width:100%;" onclick="window.GharKhataWhatsApp.chatWithPartner()">
-              <span>💬 WhatsApp ${partner.role}</span>
-            </button>
-          `;
-        } else {
-          partnerEl.innerHTML = `
-            <div style="text-align:center; padding:12px 0;">
-              <div style="font-size:2rem; margin-bottom:6px;">🤝</div>
-              <h4 style="font-size:0.95rem; font-weight:700;">Waiting for Partner to Join</h4>
-              <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">
-                Share your Household ID: <strong>${user.household_id}</strong>
-              </p>
-              <button class="btn btn-outline btn-sm" onclick="window.GharKhataApp.copyHouseholdId('${user.household_id}')">
-                📋 Copy Household Code
-              </button>
-            </div>
-          `;
-        }
-
-        // Recent Transactions
-        const recents = res.data.recent_transactions || [];
-        const recentsEl = document.getElementById('dash-recent-transactions');
-        if (recents.length === 0) {
-          recentsEl.innerHTML = '<div class="empty-state"><p>No transactions recorded yet.</p></div>';
-        } else {
-          let rHtml = '<div class="transaction-list">';
-          recents.forEach(t => {
-            const isInc = t.type === 'income';
-            rHtml += `
-              <div class="transaction-item" style="padding:10px 14px;">
-                <div class="transaction-left">
-                  <div class="transaction-icon ${isInc ? 'income' : 'expense'}" style="width:36px; height:36px; font-size:1rem;">
-                    <span>${isInc ? '↗' : '↙'}</span>
-                  </div>
-                  <div class="transaction-meta">
-                    <span class="transaction-title" style="font-size:0.9rem;">${t.description}</span>
-                    <span class="transaction-subtitle">
-                      <span>${t.date}</span> •
-                      <span>${t.category}</span> •
-                      <span class="badge ${isInc ? 'badge-dad' : 'badge-mom'}" style="padding:1px 6px; font-size:0.65rem;">${t.managed_by}</span>
-                    </span>
-                  </div>
-                </div>
-                <div class="transaction-right">
-                  <span class="transaction-amount ${isInc ? 'income' : 'expense'}" style="font-size:0.95rem;">
-                    ${isInc ? '+' : '-'}₹${Number(t.amount).toLocaleString()}
-                  </span>
-                  ${!isInc && t.remarks_count > 0 ? `
-                    <span class="badge badge-resolved" style="cursor:pointer;" onclick="window.GharKhataDiscussions.openExpenseModal(${t.id})">💬 ${t.remarks_count}</span>
-                  ` : ''}
-                </div>
-              </div>
-            `;
-          });
-          rHtml += '</div>';
-          recentsEl.innerHTML = rHtml;
-        }
-
-        // Render charts
-        if (window.GharKhataAnalytics) {
-          window.GharKhataAnalytics.renderComparisonChart(res.data.monthly_trend || []);
-          window.GharKhataAnalytics.renderCategoryChart(res.data.category_breakdown || []);
+          // Authoritative server data
+          localStorage.setItem(DASH_CACHE_KEY, JSON.stringify(res.data));
+          renderDashboardMetrics(res.data);
         }
 
       } catch (err) {

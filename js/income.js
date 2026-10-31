@@ -1,6 +1,7 @@
 /**
  * GharKhata – Income Management Logic
  * Dedicated manager for Dad with Mom view permissions.
+ * Offline-first persistent architecture with automatic serverless container self-healing.
  */
 
 (function () {
@@ -9,18 +10,137 @@
   let editingId = null;
 
   const IncomeApp = {
+    getHouseholdId() {
+      const user = window.GharKhataAuth ? window.GharKhataAuth.getUser() : null;
+      return (user && user.household_id) ? user.household_id : 'default';
+    },
+
+    getStorageKey() {
+      return `gharkhata_incomes_${this.getHouseholdId()}`;
+    },
+
+    getCachedRecords() {
+      try {
+        const raw = localStorage.getItem(this.getStorageKey());
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    },
+
+    saveCachedRecords(list) {
+      try {
+        localStorage.setItem(this.getStorageKey(), JSON.stringify(list || []));
+      } catch (e) {}
+    },
+
+    mergeRecords(incoming, existing) {
+      const map = new Map();
+
+      // Process existing first
+      (existing || []).forEach(item => {
+        if (!item) return;
+        const key = (item.id && typeof item.id === 'number') 
+          ? `id_${item.id}` 
+          : `val_${item.description}_${item.amount}_${item.date}`;
+        map.set(key, item);
+      });
+
+      // Overlay incoming authoritative records
+      (incoming || []).forEach(item => {
+        if (!item) return;
+        const key = (item.id && typeof item.id === 'number') 
+          ? `id_${item.id}` 
+          : `val_${item.description}_${item.amount}_${item.date}`;
+        
+        // Also remove any temp key if real ID arrives
+        const fallbackKey = `val_${item.description}_${item.amount}_${item.date}`;
+        if (map.has(fallbackKey) && key !== fallbackKey) {
+          map.delete(fallbackKey);
+        }
+
+        map.set(key, item);
+      });
+
+      const merged = Array.from(map.values());
+      merged.sort((a, b) => {
+        const dateComp = (b.date || '').localeCompare(a.date || '');
+        if (dateComp !== 0) return dateComp;
+        const timeComp = (b.time || '').localeCompare(a.time || '');
+        if (timeComp !== 0) return timeComp;
+        return (Number(b.id) || 0) - (Number(a.id) || 0);
+      });
+
+      return merged;
+    },
+
+    updateSummaryUI(summary) {
+      const totalAmountEl = document.getElementById('income-total-amount');
+      const totalCountEl = document.getElementById('income-total-count');
+
+      let totalAmount = 0;
+      let totalCount = incomeRecords.length;
+
+      if (summary && summary.total_amount !== undefined) {
+        totalAmount = Number(summary.total_amount);
+        totalCount = Number(summary.total_count);
+      } else {
+        totalAmount = incomeRecords.reduce((acc, cur) => acc + (Number(cur.amount) || 0), 0);
+      }
+
+      if (totalAmountEl) {
+        totalAmountEl.textContent = `₹${totalAmount.toLocaleString()}`;
+      }
+      if (totalCountEl) {
+        totalCountEl.textContent = `${totalCount} entries`;
+      }
+    },
+
     async init() {
       if (!window.GharKhataAuth.requireAuth()) return;
 
+      // 1. Immediately hydrate and render from persistent local storage
+      const cached = this.getCachedRecords();
+      if (cached && cached.length > 0) {
+        incomeRecords = cached;
+        this.renderList();
+        this.updateSummaryUI();
+      }
+
       this.setupRoleUI();
       await this.loadCategories();
-      await this.loadIncomes();
+      await this.loadIncomes(false);
       this.bindEvents();
 
       // Listen for real-time sync events
       window.addEventListener('gharkhata:sync', (e) => {
         const type = e.detail?.type;
-        if (type && (type.startsWith('INCOME_') || type === 'DATA_REFRESHED' || type === 'HOUSEHOLD_RESET')) {
+        const data = e.detail?.data;
+
+        if (type === 'HOUSEHOLD_RESET') {
+          localStorage.removeItem(this.getStorageKey());
+          incomeRecords = [];
+          this.updateSummaryUI({ total_amount: 0, total_count: 0 });
+          this.renderList();
+          return;
+        }
+
+        if (type === 'INCOME_DELETED' && e.detail?.id) {
+          incomeRecords = incomeRecords.filter(r => r.id !== e.detail.id);
+          this.saveCachedRecords(incomeRecords);
+          this.updateSummaryUI();
+          this.renderList();
+          return;
+        }
+
+        if (type === 'INCOME_ADDED' && data && data.amount) {
+          incomeRecords = this.mergeRecords([data], incomeRecords);
+          this.saveCachedRecords(incomeRecords);
+          this.updateSummaryUI();
+          this.renderList();
+        }
+
+        if (type && (type.startsWith('INCOME_') || type === 'DATA_REFRESHED')) {
           this.loadIncomes(false);
         }
       });
@@ -76,7 +196,6 @@
       const select = document.getElementById('income-category-select');
       const filterSelect = document.getElementById('filter-income-category');
       
-      // Ensure defaults immediately so form is never blocked
       if (select && select.options.length <= 1) {
         this.populateCategoriesDropdown(select);
       }
@@ -104,7 +223,7 @@
       const listEl = document.getElementById('income-list-container');
       if (!listEl) return;
 
-      if (showLoading) {
+      if (showLoading && incomeRecords.length === 0) {
         listEl.innerHTML = `
           <div class="skeleton skeleton-card" style="margin-bottom:10px;"></div>
           <div class="skeleton skeleton-card" style="margin-bottom:10px;"></div>
@@ -119,6 +238,8 @@
         const start = document.getElementById('filter-income-start')?.value || '';
         const end = document.getElementById('filter-income-end')?.value || '';
 
+        const isFiltered = search.trim() !== '' || cat !== 'all' || mode !== 'all' || start !== '' || end !== '';
+
         const params = new URLSearchParams();
         if (search) params.append('search', search);
         if (cat !== 'all') params.append('category', cat);
@@ -127,21 +248,52 @@
         if (end) params.append('end_date', end);
 
         const res = await window.GharKhataDB.request(`/api/income?${params.toString()}`);
-        incomeRecords = res.data || [];
+        const serverRecords = res.data || [];
 
-        // Update summary values on page
-        const totalAmountEl = document.getElementById('income-total-amount');
-        const totalCountEl = document.getElementById('income-total-count');
-        if (totalAmountEl) {
-          totalAmountEl.textContent = `₹${(res.summary?.total_amount || 0).toLocaleString()}`;
-        }
-        if (totalCountEl) {
-          totalCountEl.textContent = `${res.summary?.total_count || 0} entries`;
-        }
+        if (serverRecords.length > 0) {
+          // Merge server records with locally known records
+          incomeRecords = this.mergeRecords(serverRecords, incomeRecords);
+          this.saveCachedRecords(incomeRecords);
+          this.updateSummaryUI(res.summary);
+          this.renderList();
+        } else {
+          // If server returned 0 records
+          if (isFiltered) {
+            // Legitimate 0 matches for active filter
+            incomeRecords = [];
+            this.updateSummaryUI({ total_amount: 0, total_count: 0 });
+            this.renderList();
+          } else {
+            // Cold serverless instance check
+            const cached = this.getCachedRecords();
+            if (cached && cached.length > 0) {
+              console.log('🔄 Cold serverless container returned 0 records. Auto-restoring SQLite backend from client storage...');
+              incomeRecords = cached;
+              this.updateSummaryUI();
+              this.renderList();
 
-        this.renderList();
+              // Trigger background SQLite re-hydration
+              window.GharKhataDB.request('/api/sync/restore', {
+                method: 'POST',
+                body: JSON.stringify({ incomes: cached })
+              }).catch(err => console.warn('Sync restore notice:', err.message));
+            } else {
+              incomeRecords = [];
+              this.updateSummaryUI({ total_amount: 0, total_count: 0 });
+              this.renderList();
+            }
+          }
+        }
       } catch (e) {
-        listEl.innerHTML = `<div class="empty-state"><div class="empty-state-title">Error Loading Incomes</div><p>${e.message}</p></div>`;
+        // Fallback to local cache if offline or server temporarily unavailable
+        const cached = this.getCachedRecords();
+        if (cached && cached.length > 0) {
+          incomeRecords = cached;
+          this.updateSummaryUI();
+          this.renderList();
+        } else {
+          listEl.innerHTML = `<div class="empty-state"><div class="empty-state-title">Error Loading Incomes</div><p>${e.message}</p></div>`;
+        }
       }
     },
 
@@ -192,12 +344,12 @@
             <div class="transaction-right">
               <span class="transaction-amount income">+₹${Number(item.amount).toLocaleString()}</span>
               <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
-                <button class="btn btn-outline btn-sm" title="Share with Mom on WhatsApp" onclick="window.GharKhataIncome.shareWhatsApp(${item.id})">
+                <button class="btn btn-outline btn-sm" title="Share with Mom on WhatsApp" onclick="window.GharKhataIncome.shareWhatsApp('${item.id}')">
                   <span style="color:#25d366;">💬 WhatsApp</span>
                 </button>
                 ${isDad ? `
-                  <button class="btn btn-outline btn-sm" title="Edit Record" onclick="window.GharKhataIncome.openEditModal(${item.id})">✏️</button>
-                  <button class="btn btn-outline btn-sm text-expense" title="Delete Record" onclick="window.GharKhataIncome.confirmDelete(${item.id})">🗑️</button>
+                  <button class="btn btn-outline btn-sm" title="Edit Record" onclick="window.GharKhataIncome.openEditModal('${item.id}')">✏️</button>
+                  <button class="btn btn-outline btn-sm text-expense" title="Delete Record" onclick="window.GharKhataIncome.confirmDelete('${item.id}')">🗑️</button>
                 ` : ''}
               </div>
             </div>
@@ -283,7 +435,7 @@
     },
 
     openEditModal(id) {
-      const item = incomeRecords.find(r => r.id === id);
+      const item = incomeRecords.find(r => String(r.id) === String(id));
       if (!item) return;
 
       const user = window.GharKhataAuth ? window.GharKhataAuth.getUser() : null;
@@ -343,6 +495,36 @@
         return;
       }
 
+      const user = window.GharKhataAuth.getUser();
+      const tempId = editingId || ('temp_' + Date.now());
+
+      const localItem = {
+        id: tempId,
+        amount,
+        description,
+        date,
+        time,
+        category,
+        payment_mode,
+        notes,
+        user_id: user ? user.id : null,
+        added_by_name: user ? user.full_name : 'Dad',
+        added_by_role: 'Dad',
+        created_at: new Date().toISOString()
+      };
+
+      // 1. Immediately persist to local cache and render to avoid ANY flicker or empty state
+      if (editingId) {
+        incomeRecords = incomeRecords.map(r => String(r.id) === String(editingId) ? { ...r, ...localItem } : r);
+      } else {
+        incomeRecords = [localItem, ...incomeRecords.filter(r => String(r.id) !== String(tempId))];
+      }
+
+      this.saveCachedRecords(incomeRecords);
+      this.updateSummaryUI();
+      this.renderList();
+      this.closeModal();
+
       const payload = { amount, description, date, time, category, payment_mode, notes };
       const submitBtn = document.getElementById('income-submit-btn');
       if (submitBtn) {
@@ -351,43 +533,49 @@
       }
 
       try {
+        let serverRes;
         if (editingId) {
-          await window.GharKhataDB.request(`/api/income/${editingId}`, {
+          serverRes = await window.GharKhataDB.request(`/api/income/${editingId}`, {
             method: 'PUT',
             body: JSON.stringify(payload)
           });
           window.GharKhataNotifications.toast('Income record updated successfully!', 'success');
         } else {
-          await window.GharKhataDB.request('/api/income', {
+          serverRes = await window.GharKhataDB.request('/api/income', {
             method: 'POST',
             body: JSON.stringify(payload)
           });
           window.GharKhataNotifications.toast('Income added to household khata!', 'success');
         }
 
-        this.closeModal();
+        // Reconcile temporary ID with authoritative server ID
+        const realId = serverRes.id || (serverRes.data && serverRes.data.id);
+        if (realId) {
+          incomeRecords = incomeRecords.map(r => String(r.id) === String(tempId) ? { ...r, id: realId } : r);
+          this.saveCachedRecords(incomeRecords);
+          this.renderList();
+        }
 
-        // Broadcast to Firebase if available
+        const finalItem = {
+          ...localItem,
+          id: realId || tempId
+        };
+
+        // Broadcast to Firebase for instant partner synchronization
         if (window.GharKhataFirebase && window.GharKhataFirebase.publishSyncEvent) {
-          const user = window.GharKhataAuth.getUser();
           if (user && user.household_id) {
             window.GharKhataFirebase.publishSyncEvent(user.household_id, {
               type: editingId ? 'INCOME_UPDATED' : 'INCOME_ADDED',
-              amount,
-              description,
-              category
+              ...finalItem
             });
           }
         }
 
-        // Trigger local sync across all components on current page
+        // Trigger local sync across components on the current page
         window.dispatchEvent(new CustomEvent('gharkhata:sync', {
-          detail: { type: editingId ? 'INCOME_UPDATED' : 'INCOME_ADDED', amount, description, category }
+          detail: { type: editingId ? 'INCOME_UPDATED' : 'INCOME_ADDED', data: finalItem }
         }));
 
-        if (document.getElementById('income-list-container')) {
-          await this.loadIncomes(false);
-        }
       } catch (err) {
         window.GharKhataNotifications.toast(err.message, 'error');
       } finally {
@@ -399,7 +587,7 @@
     },
 
     confirmDelete(id) {
-      const item = incomeRecords.find(r => r.id === id);
+      const item = incomeRecords.find(r => String(r.id) === String(id));
       if (!item) return;
 
       window.GharKhataNotifications.confirm({
@@ -408,8 +596,16 @@
         confirmText: 'Delete',
         isDanger: true,
         onConfirm: async () => {
+          // Immediately update UI and cache
+          incomeRecords = incomeRecords.filter(r => String(r.id) !== String(id));
+          this.saveCachedRecords(incomeRecords);
+          this.updateSummaryUI();
+          this.renderList();
+
           try {
-            await window.GharKhataDB.request(`/api/income/${id}`, { method: 'DELETE' });
+            if (typeof id === 'number' || !String(id).startsWith('temp_')) {
+              await window.GharKhataDB.request(`/api/income/${id}`, { method: 'DELETE' });
+            }
             window.GharKhataNotifications.toast('Income record deleted.', 'info');
             
             // Broadcast delete event to partner device
@@ -428,7 +624,6 @@
               detail: { type: 'INCOME_DELETED', id, amount: item.amount, description: item.description }
             }));
 
-            this.loadIncomes(false);
           } catch (err) {
             window.GharKhataNotifications.toast(err.message, 'error');
           }
@@ -437,7 +632,7 @@
     },
 
     shareWhatsApp(id) {
-      const item = incomeRecords.find(r => r.id === id);
+      const item = incomeRecords.find(r => String(r.id) === String(id));
       if (item && window.GharKhataWhatsApp) {
         window.GharKhataWhatsApp.shareIncomeUpdate(item);
       }
@@ -462,4 +657,3 @@
     }
   });
 })();
-

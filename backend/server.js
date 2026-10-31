@@ -24,9 +24,10 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-const { initDatabase } = require('./database');
+const { initDatabase, queryOne, execute } = require('./database');
 const { registerClient } = require('./syncBroadcaster');
 const { verifyToken } = require('./auth');
+const { authenticateUser } = require('./middleware/authMiddleware');
 
 // Route modules
 const authRoutes = require('./routes/authRoutes');
@@ -102,6 +103,102 @@ app.get('/api/sync/events', (req, res) => {
   res.write(`data: ${JSON.stringify({ type: 'CONNECTED', householdId, message: 'Real-time sync active' })}\n\n`);
 
   registerClient(householdId, res);
+});
+
+/**
+ * Multi-Container / Serverless Auto-Restore Endpoint
+ * Re-hydrates SQLite database in ephemeral serverless instances from client persistent storage.
+ */
+app.post('/api/sync/restore', authenticateUser, (req, res) => {
+  try {
+    const { incomes, expenses } = req.body || {};
+    const householdId = req.user.household_id;
+    let restoredIncomes = 0;
+    let restoredExpenses = 0;
+
+    if (Array.isArray(incomes)) {
+      for (const inc of incomes) {
+        if (!inc || !inc.amount) continue;
+        const exists = queryOne(
+          'SELECT id FROM incomes WHERE household_id = ? AND ((id = ? AND id IS NOT NULL) OR (description = ? AND amount = ? AND date = ?))', 
+          [householdId, typeof inc.id === 'number' ? inc.id : null, inc.description, inc.amount, inc.date]
+        );
+        if (!exists) {
+          let targetUserId = req.user.id;
+          if (inc.user_id) {
+            const uRow = queryOne('SELECT id FROM users WHERE id = ?', [inc.user_id]);
+            if (uRow) targetUserId = uRow.id;
+          }
+          execute(
+            `INSERT INTO incomes (id, household_id, user_id, amount, date, time, category, payment_mode, description, notes, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              typeof inc.id === 'number' ? inc.id : null,
+              householdId,
+              targetUserId,
+              parseFloat(inc.amount),
+              inc.date,
+              inc.time || '12:00',
+              inc.category || 'Other Income',
+              inc.payment_mode || 'Bank',
+              inc.description || 'Income',
+              inc.notes || null,
+              inc.created_at || new Date().toISOString(),
+              inc.updated_at || new Date().toISOString()
+            ]
+          );
+          restoredIncomes++;
+        }
+      }
+    }
+
+    if (Array.isArray(expenses)) {
+      for (const exp of expenses) {
+        if (!exp || !exp.amount) continue;
+        const exists = queryOne(
+          'SELECT id FROM expenses WHERE household_id = ? AND ((id = ? AND id IS NOT NULL) OR (description = ? AND amount = ? AND date = ?))', 
+          [householdId, typeof exp.id === 'number' ? exp.id : null, exp.description, exp.amount, exp.date]
+        );
+        if (!exists) {
+          let targetUserId = req.user.id;
+          if (exp.user_id) {
+            const uRow = queryOne('SELECT id FROM users WHERE id = ?', [exp.user_id]);
+            if (uRow) targetUserId = uRow.id;
+          }
+          execute(
+            `INSERT INTO expenses (id, household_id, user_id, amount, date, time, category, payment_mode, description, receipt_url, receipt_filename, notes, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              typeof exp.id === 'number' ? exp.id : null,
+              householdId,
+              targetUserId,
+              parseFloat(exp.amount),
+              exp.date,
+              exp.time || '12:00',
+              exp.category || 'Others',
+              exp.payment_mode || 'UPI',
+              exp.description || 'Expense',
+              exp.receipt_url || null,
+              exp.receipt_filename || null,
+              exp.notes || null,
+              exp.created_at || new Date().toISOString(),
+              exp.updated_at || new Date().toISOString()
+            ]
+          );
+          restoredExpenses++;
+        }
+      }
+    }
+
+    return res.json({
+      success: true,
+      restoredIncomes,
+      restoredExpenses,
+      message: `Sync completed: ${restoredIncomes} incomes and ${restoredExpenses} expenses synchronized.`
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // Health check

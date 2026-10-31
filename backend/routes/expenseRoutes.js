@@ -77,11 +77,11 @@ router.get('/', (req, res) => {
   try {
     const { search, category, payment_mode, start_date, end_date } = req.query;
     let query = `
-      SELECT e.*, u.full_name as added_by_name, u.role as added_by_role,
+      SELECT e.*, COALESCE(u.full_name, 'Mom') as added_by_name, COALESCE(u.role, 'Mom') as added_by_role,
              (SELECT COUNT(*) FROM discussions d WHERE d.expense_id = e.id) as remarks_count,
              (SELECT COUNT(*) FROM discussions d WHERE d.expense_id = e.id AND d.is_resolved = 0) as unresolved_remarks_count
       FROM expenses e
-      JOIN users u ON e.user_id = u.id
+      LEFT JOIN users u ON e.user_id = u.id
       WHERE e.household_id = ?
     `;
     const params = [req.user.household_id];
@@ -143,9 +143,9 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
   try {
     const record = queryOne(
-      `SELECT e.*, u.full_name as added_by_name, u.role as added_by_role
+      `SELECT e.*, COALESCE(u.full_name, 'Mom') as added_by_name, COALESCE(u.role, 'Mom') as added_by_role
        FROM expenses e
-       JOIN users u ON e.user_id = u.id
+       LEFT JOIN users u ON e.user_id = u.id
        WHERE e.id = ? AND e.household_id = ?`,
       [req.params.id, req.user.household_id]
     );
@@ -155,9 +155,9 @@ router.get('/:id', (req, res) => {
     }
 
     const remarks = queryAll(
-      `SELECT d.*, u.full_name, u.role
+      `SELECT d.*, COALESCE(u.full_name, d.sender_name) as full_name, COALESCE(u.role, d.sender_role) as role
        FROM discussions d
-       JOIN users u ON d.user_id = u.id
+       LEFT JOIN users u ON d.user_id = u.id
        WHERE d.expense_id = ?
        ORDER BY d.created_at ASC`,
       [req.params.id]
@@ -280,15 +280,28 @@ router.post('/', requireMom, (req, res) => {
     // Budget threshold check
     const budgetStatus = checkBudgetAlerts(req.user.household_id, date);
 
+    const createdItem = {
+      id: newId,
+      household_id: req.user.household_id,
+      user_id: req.user.id,
+      amount: parseFloat(amount),
+      date,
+      time: entryTime,
+      category: category.trim(),
+      payment_mode,
+      description: description.trim(),
+      receipt_url: receiptUrl,
+      receipt_filename: savedFilename,
+      notes: notes ? notes.trim() : null,
+      created_at: now,
+      updated_at: now,
+      added_by_name: req.user.full_name,
+      added_by_role: req.user.role
+    };
+
     // Real-time broadcast
     broadcastEvent(req.user.household_id, 'EXPENSE_ADDED', {
-      id: newId,
-      amount: parseFloat(amount),
-      description: description.trim(),
-      category: category.trim(),
-      date,
-      added_by: req.user.full_name,
-      receipt_url: receiptUrl,
+      ...createdItem,
       budget_status: budgetStatus
     });
 
@@ -296,6 +309,7 @@ router.post('/', requireMom, (req, res) => {
       success: true,
       message: 'Expense record saved successfully!',
       id: newId,
+      data: createdItem,
       receipt_url: receiptUrl,
       budget_status: budgetStatus
     });

@@ -281,6 +281,11 @@
               method: 'POST'
             });
 
+            // Clear local cached transactions for this household
+            localStorage.removeItem(`gharkhata_incomes_${user.household_id}`);
+            localStorage.removeItem(`gharkhata_expenses_${user.household_id}`);
+            localStorage.removeItem(`gharkhata_dashboard_data_${user.household_id}`);
+
             window.GharKhataNotifications.toast(res.message || 'Household ledger reset to ₹0 successfully!', 'success', 6000);
 
             if (window.GharKhataFirebase && window.GharKhataFirebase.publishSyncEvent) {

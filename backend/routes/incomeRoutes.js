@@ -22,9 +22,9 @@ router.get('/', (req, res) => {
   try {
     const { search, category, payment_mode, start_date, end_date } = req.query;
     let query = `
-      SELECT i.*, u.full_name as added_by_name, u.role as added_by_role
+      SELECT i.*, COALESCE(u.full_name, 'Dad') as added_by_name, COALESCE(u.role, 'Dad') as added_by_role
       FROM incomes i
-      JOIN users u ON i.user_id = u.id
+      LEFT JOIN users u ON i.user_id = u.id
       WHERE i.household_id = ?
     `;
     const params = [req.user.household_id];
@@ -87,9 +87,9 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
   try {
     const record = queryOne(
-      `SELECT i.*, u.full_name as added_by_name, u.role as added_by_role
+      `SELECT i.*, COALESCE(u.full_name, 'Dad') as added_by_name, COALESCE(u.role, 'Dad') as added_by_role
        FROM incomes i
-       JOIN users u ON i.user_id = u.id
+       LEFT JOIN users u ON i.user_id = u.id
        WHERE i.id = ? AND i.household_id = ?`,
       [req.params.id, req.user.household_id]
     );
@@ -181,20 +181,31 @@ router.post('/', requireDad, (req, res) => {
       ]
     );
 
-    // Real-time broadcast
-    broadcastEvent(req.user.household_id, 'INCOME_ADDED', {
+    const createdItem = {
       id: newId,
+      household_id: req.user.household_id,
+      user_id: req.user.id,
       amount: parseFloat(amount),
-      description: description.trim(),
-      category: category.trim(),
       date,
-      added_by: req.user.full_name
-    });
+      time: entryTime,
+      category: category.trim(),
+      payment_mode,
+      description: description.trim(),
+      notes: notes ? notes.trim() : null,
+      created_at: now,
+      updated_at: now,
+      added_by_name: req.user.full_name,
+      added_by_role: req.user.role
+    };
+
+    // Real-time broadcast
+    broadcastEvent(req.user.household_id, 'INCOME_ADDED', createdItem);
 
     return res.status(201).json({
       success: true,
       message: 'Income record saved successfully!',
-      id: newId
+      id: newId,
+      data: createdItem
     });
   } catch (error) {
     console.error('Error adding income:', error);

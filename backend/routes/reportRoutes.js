@@ -285,9 +285,9 @@ router.get('/transactions', (req, res) => {
       let q = `
         SELECT i.id, i.amount, i.date, i.time, i.category, i.payment_mode, i.description, 
                i.notes, NULL as receipt_url, 0 as remarks_count, 'income' as type, 
-               u.full_name as added_by_name, u.role as added_by_role, i.created_at
+               COALESCE(u.full_name, 'Dad') as added_by_name, COALESCE(u.role, 'Dad') as added_by_role, i.created_at
         FROM incomes i
-        JOIN users u ON i.user_id = u.id
+        LEFT JOIN users u ON i.user_id = u.id
         WHERE i.household_id = ?
       `;
       const p = [householdId];
@@ -324,9 +324,9 @@ router.get('/transactions', (req, res) => {
                e.notes, e.receipt_url, e.receipt_filename,
                (SELECT COUNT(*) FROM discussions d WHERE d.expense_id = e.id) as remarks_count,
                'expense' as type, 
-               u.full_name as added_by_name, u.role as added_by_role, e.created_at
+               COALESCE(u.full_name, 'Mom') as added_by_name, COALESCE(u.role, 'Mom') as added_by_role, e.created_at
         FROM expenses e
-        JOIN users u ON e.user_id = u.id
+        LEFT JOIN users u ON e.user_id = u.id
         WHERE e.household_id = ?
       `;
       const p = [householdId];

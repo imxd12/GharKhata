@@ -115,6 +115,24 @@
             const latestId = recents.length > 0 ? recents[0].id : 0;
             const currentHash = `${s.lifetime_income}_${s.lifetime_expense}_${latestId}_${recents.length}`;
 
+            // Check if serverless container returned 0 while client has local records
+            const isServerEmpty = (s.lifetime_income === 0 && s.lifetime_expense === 0 && recents.length === 0);
+            let localIncomes = [];
+            let localExpenses = [];
+            try {
+              localIncomes = JSON.parse(localStorage.getItem(`gharkhata_incomes_${householdId}`) || '[]');
+              localExpenses = JSON.parse(localStorage.getItem(`gharkhata_expenses_${householdId}`) || '[]');
+            } catch (err) {}
+
+            if (isServerEmpty && (localIncomes.length > 0 || localExpenses.length > 0)) {
+              console.log('🔄 Cold serverless instance detected during heartbeat. Auto-restoring SQLite backend...');
+              window.GharKhataDB.request('/api/sync/restore', {
+                method: 'POST',
+                body: JSON.stringify({ incomes: localIncomes, expenses: localExpenses })
+              }).catch(() => {});
+              return; // Do NOT wipe UI!
+            }
+
             if (lastKnownStateHash && lastKnownStateHash !== currentHash) {
               console.log('🔄 Heartbeat detected ledger change on partner device, synchronizing UI...');
               this.dispatchLocalSync({ type: 'DATA_REFRESHED', source: 'heartbeat' });
@@ -132,6 +150,7 @@
       const user = window.GharKhataAuth ? window.GharKhataAuth.getUser() : null;
       const currentRole = user ? user.role : '';
       const currentUserId = user ? user.id : null;
+      const householdId = user ? user.household_id : null;
 
       const eventType = payload.type || payload.last_event || (payload.data && payload.data.type) || 'EVENT_UPDATED';
       const senderRole = payload.sender_role || (payload.data && payload.data.sender_role) || '';
@@ -145,6 +164,30 @@
         sender_id: senderId,
         data: payload.data || payload
       };
+
+      // Also persist to local client cache so partner device immediately retains the record
+      if (householdId) {
+        try {
+          const item = payload.data || payload;
+          if (eventType === 'INCOME_ADDED' && item && item.amount) {
+            const key = `gharkhata_incomes_${householdId}`;
+            const current = JSON.parse(localStorage.getItem(key) || '[]');
+            const exists = current.some(r => (item.id && String(r.id) === String(item.id)) || (r.description === item.description && Number(r.amount) === Number(item.amount) && r.date === item.date));
+            if (!exists) {
+              current.unshift(item);
+              localStorage.setItem(key, JSON.stringify(current));
+            }
+          } else if (eventType === 'EXPENSE_ADDED' && item && item.amount) {
+            const key = `gharkhata_expenses_${householdId}`;
+            const current = JSON.parse(localStorage.getItem(key) || '[]');
+            const exists = current.some(r => (item.id && String(r.id) === String(item.id)) || (r.description === item.description && Number(r.amount) === Number(item.amount) && r.date === item.date));
+            if (!exists) {
+              current.unshift(item);
+              localStorage.setItem(key, JSON.stringify(current));
+            }
+          }
+        } catch (cacheErr) {}
+      }
 
       // Notify partner visually via toast (only if not a past event on page load and not sent by self)
       const isFromSelf = senderId && currentUserId && senderId === currentUserId;

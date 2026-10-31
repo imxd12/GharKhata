@@ -100,8 +100,36 @@
       if (end) params.append('end_date', end);
 
       try {
+        const isFiltered = search.trim() !== '' || type !== 'all' || mode !== 'all' || start !== '' || end !== '';
         const res = await window.GharKhataDB.request(`/api/reports/transactions?${params.toString()}`);
-        const transactions = res.data || [];
+        let transactions = res.data || [];
+
+        // Check if server returned 0 due to cold serverless instance
+        if (transactions.length === 0 && !isFiltered) {
+          const user = window.GharKhataAuth.getUser();
+          const householdId = user ? user.household_id : null;
+          if (householdId) {
+            let localIncomes = [];
+            let localExpenses = [];
+            try {
+              localIncomes = JSON.parse(localStorage.getItem(`gharkhata_incomes_${householdId}`) || '[]');
+              localExpenses = JSON.parse(localStorage.getItem(`gharkhata_expenses_${householdId}`) || '[]');
+            } catch (e) {}
+
+            if (localIncomes.length > 0 || localExpenses.length > 0) {
+              transactions = [
+                ...localIncomes.map(i => ({ ...i, type: 'income', added_by_role: 'Dad' })),
+                ...localExpenses.map(e => ({ ...e, type: 'expense', added_by_role: 'Mom' }))
+              ].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+              // Auto-restore backend
+              window.GharKhataDB.request('/api/sync/restore', {
+                method: 'POST',
+                body: JSON.stringify({ incomes: localIncomes, expenses: localExpenses })
+              }).catch(() => {});
+            }
+          }
+        }
 
         if (transactions.length === 0) {
           listEl.innerHTML = `
