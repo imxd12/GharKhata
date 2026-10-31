@@ -8,8 +8,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
+const os = require('node:os');
+
 const UPLOADS_DIR = process.env.VERCEL
-  ? path.join('/tmp', 'uploads', 'receipts')
+  ? path.join(os.tmpdir(), 'uploads', 'receipts')
   : path.join(__dirname, '..', '..', 'uploads', 'receipts');
 
 // Ensure upload directory exists

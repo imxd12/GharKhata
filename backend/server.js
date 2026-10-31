@@ -143,7 +143,8 @@ app.get('/', (req, res) => {
 
 // 404 Fallback for unhandled routes
 app.use((req, res) => {
-  if (req.path.startsWith('/api/')) {
+  const reqPath = req.path || req.pathname || '';
+  if (reqPath.startsWith('/api/')) {
     return res.status(404).json({ success: false, message: 'API endpoint not found.' });
   }
   res.status(404).sendFile(path.join(ROOT_DIR, 'index.html'));

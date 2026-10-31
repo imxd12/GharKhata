@@ -1,6 +1,6 @@
 /**
  * GharKhata – Lightweight Zero-Dependency HTTP & Router Core
- * Replaces Express so GharKhata runs instantly on any Node.js 18+ system without npm install.
+ * Replaces Express so GharKhata runs seamlessly on Node.js without npm installation issues.
  */
 
 const http = require('node:http');
@@ -25,37 +25,38 @@ const MIME_TYPES = {
 
 class MiniRouter {
   constructor() {
-    this.routes = [];
-    this.middlewares = [];
+    this.stack = [];
   }
 
-  use(...args) {
-    if (args.length === 1 && typeof args[0] === 'function') {
-      this.middlewares.push(args[0]);
-    } else if (args.length >= 2 && typeof args[0] === 'string') {
-      const prefix = args[0];
-      const handler = args[1];
-      if (handler instanceof MiniRouter) {
-        handler.routes.forEach(r => {
-          this.routes.push({
-            method: r.method,
-            pathRegex: pathToRegex(prefix + (r.path === '/' ? '' : r.path)),
-            paramNames: r.paramNames,
-            handlers: [...this.middlewares, ...handler.middlewares, ...r.handlers]
+  use(prefix, ...handlers) {
+    if (typeof prefix === 'function') {
+      handlers.unshift(prefix);
+      prefix = '/';
+    }
+
+    for (const h of handlers) {
+      if (h instanceof MiniRouter) {
+        for (const item of h.stack) {
+          const combined = (prefix === '/' ? '' : prefix) + (item.path === '/' ? '' : item.path) || '/';
+          const { regex, paramNames } = parseRoute(combined);
+          this.stack.push({
+            method: item.method,
+            path: combined,
+            regex: item.isMiddleware ? (combined === '/' ? null : new RegExp('^' + combined + '(/.*)?$')) : regex,
+            paramNames: item.paramNames || paramNames,
+            handlers: item.handlers,
+            isMiddleware: item.isMiddleware,
+            prefix: item.isMiddleware ? combined : null
           });
-        });
-      } else if (typeof handler === 'function') {
-        this.middlewares.push((req, res, next) => {
-          if (req.pathname === prefix || req.pathname.startsWith(prefix + '/')) {
-            const oldSubPath = req.subPath;
-            req.subPath = req.pathname.substring(prefix.length) || '/';
-            handler(req, res, () => {
-              req.subPath = oldSubPath;
-              next();
-            });
-          } else {
-            next();
-          }
+        }
+      } else {
+        this.stack.push({
+          method: null,
+          path: prefix,
+          regex: prefix === '/' ? null : new RegExp('^' + prefix + '(/.*)?$'),
+          handlers: [h],
+          isMiddleware: true,
+          prefix: prefix === '/' ? null : prefix
         });
       }
     }
@@ -64,12 +65,14 @@ class MiniRouter {
 
   addRoute(method, routePath, ...handlers) {
     const { regex, paramNames } = parseRoute(routePath);
-    this.routes.push({
+    this.stack.push({
       method: method.toUpperCase(),
       path: routePath,
-      pathRegex: regex,
+      regex,
       paramNames,
-      handlers
+      handlers,
+      isMiddleware: false,
+      prefix: null
     });
   }
 
@@ -90,15 +93,6 @@ function parseRoute(routePath) {
   return { regex, paramNames };
 }
 
-function pathToRegex(routePath) {
-  const paramNames = [];
-  const clean = routePath.replace(/:([a-zA-Z0-9_]+)/g, (_, name) => {
-    paramNames.push(name);
-    return '([^/]+)';
-  });
-  return new RegExp(`^${clean}/?$`);
-}
-
 class MiniApp extends MiniRouter {
   constructor() {
     super();
@@ -111,7 +105,7 @@ class MiniApp extends MiniRouter {
     return server.listen(port, callback);
   }
 
-  async handleRequest(req, res) {
+  handleRequest(req, res) {
     // 1. CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
@@ -124,7 +118,8 @@ class MiniApp extends MiniRouter {
 
     // 2. Parse URL and query
     const parsedUrl = url.parse(req.url, true);
-    req.pathname = parsedUrl.pathname;
+    req.pathname = parsedUrl.pathname || '/';
+    req.path = req.pathname;
     req.query = parsedUrl.query || {};
     req.params = {};
     req.subPath = undefined;
@@ -137,11 +132,13 @@ class MiniApp extends MiniRouter {
     };
 
     res.json = function (data) {
+      if (this.writableEnded) return;
       this.setHeader('Content-Type', 'application/json; charset=utf-8');
       this.end(JSON.stringify(data));
     };
 
     res.send = function (data) {
+      if (this.writableEnded) return;
       if (typeof data === 'object' && !Buffer.isBuffer(data)) {
         return this.json(data);
       }
@@ -149,6 +146,7 @@ class MiniApp extends MiniRouter {
     };
 
     res.sendFile = function (filePath) {
+      if (this.writableEnded) return;
       if (!fs.existsSync(filePath)) {
         this.status(404).json({ success: false, message: 'File not found' });
         return;
@@ -166,15 +164,15 @@ class MiniApp extends MiniRouter {
     };
 
     res.flushHeaders = function () {
-      // http handles flushing on write
+      // http server response handles headers on write
     };
 
-    // 4. Parse body for POST/PUT/PATCH
+    // 4. Parse request body for POST/PUT/PATCH
     if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
       let bodyData = '';
       req.on('data', chunk => {
         bodyData += chunk;
-        if (bodyData.length > 15 * 1024 * 1024) { // 15MB limit
+        if (bodyData.length > 20 * 1024 * 1024) { // 20MB limit
           req.destroy();
         }
       });
@@ -206,51 +204,86 @@ class MiniApp extends MiniRouter {
   }
 
   dispatch(req, res) {
-    let matchedRoute = null;
-    let params = {};
+    let stackIdx = 0;
 
-    for (const r of this.routes) {
-      if (r.method === req.method) {
-        const match = req.pathname.match(r.pathRegex);
-        if (match) {
-          matchedRoute = r;
-          if (r.paramNames && r.paramNames.length > 0) {
-            r.paramNames.forEach((name, i) => {
-              params[name] = decodeURIComponent(match[i + 1]);
-            });
-          }
-          break;
-        }
-      }
-    }
-
-    req.params = params;
-
-    const chain = [];
-    chain.push(...this.middlewares);
-
-    if (matchedRoute) {
-      chain.push(...matchedRoute.handlers);
-    }
-
-    let idx = 0;
     const next = (err) => {
       if (err) {
-        console.error('Middleware error:', err);
-        return res.status(500).json({ success: false, message: err.message || 'Internal server error' });
+        console.error('Pipeline error:', err);
+        if (!res.writableEnded) {
+          res.status(500).json({ success: false, message: err.message || 'Internal server error' });
+        }
+        return;
       }
 
-      if (idx < chain.length) {
-        const fn = chain[idx++];
-        try {
-          fn(req, res, next);
-        } catch (e) {
-          next(e);
-        }
-      } else {
+      if (res.writableEnded) return;
+
+      if (stackIdx >= this.stack.length) {
         if (!res.writableEnded) {
-          res.status(404).json({ success: false, message: `Cannot ${req.method} ${req.pathname}` });
+          res.status(404).json({ success: false, message: `Cannot ${req.method} ${req.path}` });
         }
+        return;
+      }
+
+      const layer = this.stack[stackIdx++];
+
+      // Case 1: Route matching (GET, POST, etc.)
+      if (!layer.isMiddleware) {
+        if (layer.method === req.method) {
+          const match = req.pathname.match(layer.regex);
+          if (match) {
+            req.params = {};
+            if (layer.paramNames && layer.paramNames.length > 0) {
+              layer.paramNames.forEach((name, i) => {
+                req.params[name] = decodeURIComponent(match[i + 1]);
+              });
+            }
+
+            // Run handlers for this route in sequence
+            let hIdx = 0;
+            const runHandlers = () => {
+              if (hIdx < layer.handlers.length && !res.writableEnded) {
+                const fn = layer.handlers[hIdx++];
+                try {
+                  fn(req, res, (handlerErr) => {
+                    if (handlerErr) next(handlerErr);
+                    else runHandlers();
+                  });
+                } catch (e) {
+                  next(e);
+                }
+              } else if (!res.writableEnded) {
+                next();
+              }
+            };
+            return runHandlers();
+          }
+        }
+        // Route didn't match, continue to next layer
+        return next();
+      }
+
+      // Case 2: Middleware matching
+      if (layer.isMiddleware) {
+        let isMatch = false;
+        if (!layer.prefix || layer.prefix === '/') {
+          isMatch = true;
+        } else if (req.pathname === layer.prefix || req.pathname.startsWith(layer.prefix + '/')) {
+          isMatch = true;
+          req.subPath = req.pathname.substring(layer.prefix.length) || '/';
+        }
+
+        if (isMatch) {
+          const fn = layer.handlers[0];
+          try {
+            fn(req, res, next);
+          } catch (e) {
+            next(e);
+          }
+          return;
+        }
+
+        // Middleware prefix didn't match, continue to next layer
+        return next();
       }
     };
 
@@ -268,7 +301,6 @@ miniExpress.Router = function () {
 
 miniExpress.static = function (dirPath) {
   return (req, res, next) => {
-    // If mounted via app.use(prefix, ...), req.subPath is available
     const relPath = req.subPath !== undefined ? req.subPath : req.pathname;
     const cleanRelPath = decodeURIComponent(relPath).replace(/^\/+/, '');
     const fullPath = path.isAbsolute(cleanRelPath) ? cleanRelPath : path.join(dirPath, cleanRelPath);

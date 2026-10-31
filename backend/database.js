@@ -7,7 +7,9 @@ const { DatabaseSync } = require('node:sqlite');
 const path = require('node:path');
 const fs = require('node:fs');
 
-const DB_DIR = process.env.VERCEL ? '/tmp' : path.join(__dirname, '..', 'database');
+const os = require('node:os');
+
+const DB_DIR = process.env.VERCEL ? os.tmpdir() : path.join(__dirname, '..', 'database');
 const DB_PATH = process.env.DATABASE_PATH
   ? path.resolve(__dirname, '..', process.env.DATABASE_PATH)
   : path.join(DB_DIR, 'gharKhata.db');
