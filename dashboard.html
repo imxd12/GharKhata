@@ -50,7 +50,7 @@
       <!-- Metric Stats Grid -->
       <section class="stats-grid">
         <!-- Total Income -->
-        <div class="stat-card income">
+        <div class="stat-card income" style="cursor:pointer;" onclick="window.location.href='income.html'">
           <div class="stat-header">
             <span class="stat-label">Total Income</span>
             <div class="stat-icon income">↗</div>
@@ -58,12 +58,15 @@
           <div class="stat-value text-income" id="stat-total-income">₹0</div>
           <div class="stat-footer">
             <span id="stat-month-income">This Month: ₹0</span>
-            <span class="badge badge-income">Dad</span>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="badge badge-income">Dad</span>
+              <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:0.75rem;" onclick="event.stopPropagation(); window.GharKhataIncome ? window.GharKhataIncome.openAddModal() : (window.location.href='income.html')">+ Add</button>
+            </div>
           </div>
         </div>
 
         <!-- Total Expenses -->
-        <div class="stat-card expense">
+        <div class="stat-card expense" style="cursor:pointer;" onclick="window.location.href='expenses.html'">
           <div class="stat-header">
             <span class="stat-label">Total Expenses</span>
             <div class="stat-icon expense">↙</div>
@@ -71,7 +74,10 @@
           <div class="stat-value text-expense" id="stat-total-expense">₹0</div>
           <div class="stat-footer">
             <span id="stat-month-expense">This Month: ₹0</span>
-            <span class="badge badge-expense">Mom</span>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="badge badge-expense">Mom</span>
+              <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:0.75rem;" onclick="event.stopPropagation(); window.GharKhataExpenses ? window.GharKhataExpenses.openAddModal() : (window.location.href='expenses.html')">+ Log</button>
+            </div>
           </div>
         </div>
 
@@ -355,13 +361,25 @@
         bannerTitle.textContent = "Income Manager's Desk";
         bannerSubtitle.textContent = "Record your income sources and review household expenses logged by Mom.";
         actionBtn.innerHTML = "<span>+</span> Record Income";
-        actionBtn.onclick = () => window.GharKhataIncome.openAddModal();
+        actionBtn.onclick = () => {
+          if (window.GharKhataIncome && typeof window.GharKhataIncome.openAddModal === 'function') {
+            window.GharKhataIncome.openAddModal();
+          } else {
+            window.location.href = 'income.html';
+          }
+        };
         waBtn.onclick = () => window.GharKhataWhatsApp.chatWithPartner();
       } else {
         bannerTitle.textContent = "Expense Manager's Desk";
         bannerSubtitle.textContent = "Record household bills, upload receipts and track budget categories.";
         actionBtn.innerHTML = "<span>+</span> Log Expense & Bill";
-        actionBtn.onclick = () => window.GharKhataExpenses.openAddModal();
+        actionBtn.onclick = () => {
+          if (window.GharKhataExpenses && typeof window.GharKhataExpenses.openAddModal === 'function') {
+            window.GharKhataExpenses.openAddModal();
+          } else {
+            window.location.href = 'expenses.html';
+          }
+        };
         waBtn.onclick = () => window.GharKhataWhatsApp.chatWithPartner();
       }
 

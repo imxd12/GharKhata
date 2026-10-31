@@ -165,4 +165,72 @@ router.get('/backup', (req, res) => {
   }
 });
 
+/**
+ * POST /api/household/reset
+ * Clear all household transactions, expenses, incomes, remarks and notifications (Reset Khata to ₹0)
+ * Leaves users and household pairing intact.
+ */
+router.post('/reset', (req, res) => {
+  try {
+    const householdId = req.user.household_id;
+    const now = new Date().toISOString();
+
+    // 1. Delete all transactions and associated data for this household
+    execute('DELETE FROM incomes WHERE household_id = ?', [householdId]);
+    execute('DELETE FROM expenses WHERE household_id = ?', [householdId]);
+    execute('DELETE FROM discussions WHERE household_id = ?', [householdId]);
+    execute('DELETE FROM notifications WHERE household_id = ?', [householdId]);
+    execute('DELETE FROM audit_logs WHERE household_id = ?', [householdId]);
+
+    // 2. Reset household budget back to default 50,000
+    execute(
+      `UPDATE households 
+       SET monthly_budget = 50000.00, updated_at = ? 
+       WHERE id = ?`,
+      [now, householdId]
+    );
+
+    // 3. Log reset in audit logs
+    execute(
+      `INSERT INTO audit_logs (household_id, user_id, user_name, user_role, action, entity, entity_id, details, created_at)
+       VALUES (?, ?, ?, ?, 'RESET_KHATA', 'households', NULL, ?, ?)`,
+      [
+        householdId,
+        req.user.id,
+        req.user.full_name,
+        req.user.role,
+        `Household ledger reset to zero by ${req.user.full_name} (${req.user.role})`,
+        now
+      ]
+    );
+
+    // 4. Create initial notification
+    execute(
+      `INSERT INTO notifications (household_id, user_id, type, title, message, created_at)
+       VALUES (?, NULL, 'system', 'Khata Reset to Zero', ?, ?)`,
+      [
+        householdId,
+        `All previous income and expense transactions were cleared by ${req.user.full_name}. Ledger is now reset to ₹0.`,
+        now
+      ]
+    );
+
+    // 5. Broadcast reset event to all connected devices in real-time
+    broadcastEvent(householdId, 'HOUSEHOLD_RESET', {
+      reset_by: req.user.full_name,
+      role: req.user.role,
+      timestamp: now
+    });
+
+    return res.json({
+      success: true,
+      message: 'All household financial data has been cleared. Ledger reset to ₹0 successfully.'
+    });
+
+  } catch (error) {
+    console.error('Reset household data error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to reset household data: ' + error.message });
+  }
+});
+
 module.exports = router;

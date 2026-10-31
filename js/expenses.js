@@ -54,27 +54,53 @@
       }
     },
 
+    populateCategoriesDropdown(select) {
+      if (!select) return;
+      const defaultCats = [
+        'Groceries',
+        'Electricity',
+        'Water',
+        'Rent',
+        'Medical',
+        'Education',
+        'Transport',
+        'Food',
+        'Shopping',
+        'Household',
+        'Others'
+      ];
+      select.innerHTML = '<option value="">Select Category</option>';
+      const catsToUse = expenseCategories.length > 0 ? expenseCategories.map(c => c.name || c) : defaultCats;
+      catsToUse.forEach(name => {
+        select.innerHTML += `<option value="${name}">${name}</option>`;
+      });
+    },
+
     async loadCategories() {
+      const select = document.getElementById('expense-category-select');
+      const filterSelect = document.getElementById('filter-expense-category');
+
+      // Ensure defaults immediately so dropdown is never blank
+      if (select && select.options.length <= 1) {
+        this.populateCategoriesDropdown(select);
+      }
+
       try {
         const res = await window.GharKhataDB.request('/api/categories?type=expense');
-        expenseCategories = res.data || [];
-        const select = document.getElementById('expense-category-select');
-        if (select) {
-          select.innerHTML = '<option value="">Select Category</option>';
-          expenseCategories.forEach(cat => {
-            select.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
-          });
-        }
-
-        const filterSelect = document.getElementById('filter-expense-category');
-        if (filterSelect) {
-          filterSelect.innerHTML = '<option value="all">All Categories</option>';
-          expenseCategories.forEach(cat => {
-            filterSelect.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
-          });
+        if (res.data && res.data.length > 0) {
+          expenseCategories = res.data;
+          if (select) {
+            this.populateCategoriesDropdown(select);
+          }
+          if (filterSelect) {
+            filterSelect.innerHTML = '<option value="all">All Categories</option>';
+            expenseCategories.forEach(cat => {
+              filterSelect.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
+            });
+          }
         }
       } catch (e) {
-        console.warn('Could not load expense categories:', e);
+        console.warn('Using default expense categories:', e.message);
       }
     },
 
@@ -294,60 +320,107 @@
     },
 
     openAddModal() {
+      const user = window.GharKhataAuth ? window.GharKhataAuth.getUser() : null;
+      if (user && user.role !== 'Mom') {
+        window.GharKhataNotifications.toast('Only Mom has permission to manage Expense records.', 'warning');
+        return;
+      }
+
       editingId = null;
       this.clearReceipt();
-      document.getElementById('expense-modal-title').textContent = 'Record New Expense';
-      document.getElementById('expense-amount').value = '';
-      document.getElementById('expense-description').value = '';
-      document.getElementById('expense-date').value = new Date().toISOString().substring(0, 10);
-      document.getElementById('expense-time').value = new Date().toTimeString().substring(0, 5);
-      document.getElementById('expense-category-select').value = '';
-      document.getElementById('expense-payment-mode').value = 'UPI';
-      document.getElementById('expense-notes').value = '';
+      const titleEl = document.getElementById('expense-modal-title');
+      if (titleEl) titleEl.textContent = 'Record New Expense';
 
-      document.getElementById('expense-modal-backdrop').classList.add('active');
+      const amtEl = document.getElementById('expense-amount');
+      if (amtEl) amtEl.value = '';
+      const descEl = document.getElementById('expense-description');
+      if (descEl) descEl.value = '';
+      const dateEl = document.getElementById('expense-date');
+      if (dateEl) dateEl.value = new Date().toISOString().substring(0, 10);
+      const timeEl = document.getElementById('expense-time');
+      if (timeEl) timeEl.value = new Date().toTimeString().substring(0, 5);
+
+      const select = document.getElementById('expense-category-select');
+      if (select) {
+        if (select.options.length <= 1) {
+          this.populateCategoriesDropdown(select);
+        }
+        select.value = '';
+      }
+
+      const modeEl = document.getElementById('expense-payment-mode');
+      if (modeEl) modeEl.value = 'UPI';
+      const notesEl = document.getElementById('expense-notes');
+      if (notesEl) notesEl.value = '';
+
+      const backdrop = document.getElementById('expense-modal-backdrop');
+      if (backdrop) backdrop.classList.add('active');
     },
 
     openEditModal(id) {
       const item = expenseRecords.find(r => r.id === id);
       if (!item) return;
 
+      const user = window.GharKhataAuth ? window.GharKhataAuth.getUser() : null;
+      if (user && user.role !== 'Mom') {
+        window.GharKhataNotifications.toast('Only Mom has permission to edit Expense records.', 'warning');
+        return;
+      }
+
       editingId = id;
       this.clearReceipt();
-      document.getElementById('expense-modal-title').textContent = 'Edit Expense Record';
-      document.getElementById('expense-amount').value = item.amount;
-      document.getElementById('expense-description').value = item.description;
-      document.getElementById('expense-date').value = item.date;
-      document.getElementById('expense-time').value = item.time || '';
-      document.getElementById('expense-category-select').value = item.category;
-      document.getElementById('expense-payment-mode').value = item.payment_mode;
-      document.getElementById('expense-notes').value = item.notes || '';
+      const titleEl = document.getElementById('expense-modal-title');
+      if (titleEl) titleEl.textContent = 'Edit Expense Record';
+
+      const amtEl = document.getElementById('expense-amount');
+      if (amtEl) amtEl.value = item.amount;
+      const descEl = document.getElementById('expense-description');
+      if (descEl) descEl.value = item.description;
+      const dateEl = document.getElementById('expense-date');
+      if (dateEl) dateEl.value = item.date;
+      const timeEl = document.getElementById('expense-time');
+      if (timeEl) timeEl.value = item.time || '';
+
+      const select = document.getElementById('expense-category-select');
+      if (select) {
+        if (select.options.length <= 1) {
+          this.populateCategoriesDropdown(select);
+        }
+        select.value = item.category;
+      }
+
+      const modeEl = document.getElementById('expense-payment-mode');
+      if (modeEl) modeEl.value = item.payment_mode;
+      const notesEl = document.getElementById('expense-notes');
+      if (notesEl) notesEl.value = item.notes || '';
 
       if (item.receipt_url) {
         this.renderReceiptPreview(item.receipt_url, item.receipt_filename || 'receipt.jpg');
       }
 
-      document.getElementById('expense-modal-backdrop').classList.add('active');
+      const backdrop = document.getElementById('expense-modal-backdrop');
+      if (backdrop) backdrop.classList.add('active');
     },
 
     closeModal() {
-      document.getElementById('expense-modal-backdrop').classList.remove('active');
+      const backdrop = document.getElementById('expense-modal-backdrop');
+      if (backdrop) backdrop.classList.remove('active');
       editingId = null;
       this.clearReceipt();
     },
 
     async handleFormSubmit(e) {
       e.preventDefault();
-      const amount = parseFloat(document.getElementById('expense-amount').value);
-      const description = document.getElementById('expense-description').value.trim();
-      const date = document.getElementById('expense-date').value;
-      const time = document.getElementById('expense-time').value;
-      const category = document.getElementById('expense-category-select').value;
-      const payment_mode = document.getElementById('expense-payment-mode').value;
-      const notes = document.getElementById('expense-notes').value.trim();
+      const amount = parseFloat(document.getElementById('expense-amount')?.value);
+      const description = document.getElementById('expense-description')?.value.trim();
+      const date = document.getElementById('expense-date')?.value;
+      const time = document.getElementById('expense-time')?.value || new Date().toTimeString().substring(0, 5);
+      const category = document.getElementById('expense-category-select')?.value;
+      const payment_mode = document.getElementById('expense-payment-mode')?.value || 'UPI';
+      const notes = document.getElementById('expense-notes')?.value.trim();
 
       if (!amount || amount <= 0 || !description || !date || !category) {
-        window.GharKhataNotifications.toast('Please fill all required fields.', 'error');
+        window.GharKhataNotifications.toast('Please fill all required fields (Amount, Description, Category, Date).', 'error');
         return;
       }
 
@@ -364,8 +437,10 @@
       };
 
       const submitBtn = document.getElementById('expense-submit-btn');
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Saving...';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
+      }
 
       try {
         if (editingId) {
@@ -386,6 +461,8 @@
         }
 
         this.closeModal();
+
+        // Broadcast to Firebase sync if available
         if (window.GharKhataFirebase && window.GharKhataFirebase.publishSyncEvent) {
           const user = window.GharKhataAuth.getUser();
           if (user && user.household_id) {
@@ -397,12 +474,22 @@
             });
           }
         }
-        await this.loadExpenses(false);
+
+        // Trigger local sync across all components on current page
+        window.dispatchEvent(new CustomEvent('gharkhata:sync', {
+          detail: { type: editingId ? 'EXPENSE_UPDATED' : 'EXPENSE_ADDED', amount, description, category }
+        }));
+
+        if (document.getElementById('expense-list-container')) {
+          await this.loadExpenses(false);
+        }
       } catch (err) {
         window.GharKhataNotifications.toast(err.message, 'error');
       } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Save Expense';
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Save Expense';
+        }
       }
     },
 
@@ -487,7 +574,7 @@
   window.GharKhataExpenses = ExpenseApp;
 
   document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('expense-list-container')) {
+    if (document.getElementById('expense-list-container') || document.getElementById('expense-modal-backdrop') || document.getElementById('btn-add-expense')) {
       ExpenseApp.init();
     }
   });

@@ -110,12 +110,39 @@
           </div>
 
           <!-- Partner Card -->
-          <div class="card">
+          <div class="card" style="margin-bottom:24px;">
             <div class="card-header">
               <h3 class="card-title">Paired Partner</h3>
             </div>
             <div class="card-body" id="profile-partner-box">
               <div class="skeleton skeleton-card"></div>
+            </div>
+          </div>
+
+          <!-- Danger Zone: Reset App & Clear All Data -->
+          <div class="card" style="border-color: rgba(220, 38, 38, 0.4);">
+            <div class="card-header" style="background-color: var(--color-expense-soft); border-bottom-color: rgba(220, 38, 38, 0.2);">
+              <h3 class="card-title" style="color: var(--color-expense); display:flex; align-items:center; gap:8px;">
+                <span>⚠️</span> Danger Zone: Reset Khata
+              </h3>
+              <span class="badge badge-expense">Reset App</span>
+            </div>
+            <div class="card-body">
+              <p style="font-size:0.9rem; font-weight:700; color:var(--text-main); margin-bottom:6px;">
+                Clear All Financial Data
+              </p>
+              <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.5; margin-bottom:18px;">
+                Permanently delete all income records, expenses, receipts, discussions and alerts for this household. 
+                Both Dad and Mom accounts and your Household ID (<span class="font-mono font-bold" id="profile-reset-hh-id">GHK-...</span>) will remain active so you can start with a fresh ₹0 ledger.
+              </p>
+              <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="button" id="btn-reset-household" class="btn btn-danger btn-sm" onclick="confirmResetAllData()">
+                  <span>🗑️</span> Clear All Data (Reset Khata)
+                </button>
+                <a href="/api/household/backup" class="btn btn-outline btn-sm" target="_blank" download>
+                  <span>💾</span> Download Backup
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -145,6 +172,8 @@
       document.getElementById('profile-phone').value = user.phone;
       document.getElementById('profile-role-text').value = `${user.role} (${user.role === 'Dad' ? 'Income Manager' : 'Expense Manager'})`;
       document.getElementById('profile-household-id').textContent = user.household_id;
+      const resetHhEl = document.getElementById('profile-reset-hh-id');
+      if (resetHhEl) resetHhEl.textContent = user.household_id;
 
       const avatar = document.getElementById('profile-avatar');
       avatar.textContent = user.role === 'Dad' ? '👨' : '👩';
@@ -229,6 +258,50 @@
         });
       }
     });
+
+    function confirmResetAllData() {
+      const user = window.GharKhataAuth.getUser();
+      if (!user) return;
+
+      window.GharKhataNotifications.confirm({
+        title: '⚠️ Confirm Reset Financial Data',
+        message: `Are you sure you want to permanently clear all income records, expenses, receipts, discussions and notifications for household ${user.household_id}? This will reset the financial balance to ₹0. Both Dad and Mom accounts will stay active.`,
+        confirmText: 'Yes, Reset All Data',
+        cancelText: 'Cancel',
+        isDanger: true,
+        onConfirm: async () => {
+          const resetBtn = document.getElementById('btn-reset-household');
+          if (resetBtn) {
+            resetBtn.disabled = true;
+            resetBtn.textContent = 'Resetting Ledger...';
+          }
+
+          try {
+            const res = await window.GharKhataDB.request('/api/household/reset', {
+              method: 'POST'
+            });
+
+            window.GharKhataNotifications.toast(res.message || 'Household ledger reset to ₹0 successfully!', 'success', 6000);
+
+            if (window.GharKhataFirebase && window.GharKhataFirebase.publishSyncEvent) {
+              window.GharKhataFirebase.publishSyncEvent(user.household_id, {
+                type: 'HOUSEHOLD_RESET',
+                timestamp: new Date().toISOString()
+              });
+            }
+
+            window.dispatchEvent(new CustomEvent('gharkhata:sync', { detail: { type: 'HOUSEHOLD_RESET' } }));
+          } catch (err) {
+            window.GharKhataNotifications.toast('Failed to reset: ' + err.message, 'error');
+          } finally {
+            if (resetBtn) {
+              resetBtn.disabled = false;
+              resetBtn.innerHTML = '<span>🗑️</span> Clear All Data (Reset Khata)';
+            }
+          }
+        }
+      });
+    }
   </script>
 </body>
 </html>

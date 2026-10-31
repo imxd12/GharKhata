@@ -110,15 +110,20 @@
           <!-- Data Backup & Safety -->
           <div class="card" style="margin-bottom:24px;">
             <div class="card-header">
-              <h3 class="card-title">Financial Data Backup</h3>
+              <h3 class="card-title">Financial Data Backup & Reset</h3>
             </div>
             <div class="card-body">
-              <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:16px;">
+              <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px;">
                 Download an offline JSON snapshot of your household's entire SQLite records for safekeeping.
               </p>
-              <a href="/api/household/backup" class="btn btn-outline btn-sm" style="width:100%; justify-content:center;" target="_blank">
-                ⬇️ Download Full JSON Backup
-              </a>
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                <a href="/api/household/backup" class="btn btn-outline btn-sm" style="width:100%; justify-content:center;" target="_blank">
+                  ⬇️ Download Full JSON Backup
+                </a>
+                <a href="profile.html#reset" class="btn btn-danger btn-sm" style="width:100%; justify-content:center;">
+                  ⚠️ Reset Household Ledger (In Profile)
+                </a>
+              </div>
             </div>
           </div>
 

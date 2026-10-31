@@ -54,27 +54,49 @@
       }
     },
 
+    populateCategoriesDropdown(select) {
+      if (!select) return;
+      const defaultCats = [
+        'Salary',
+        'Business',
+        'Investment',
+        'Rental',
+        'Freelance',
+        'Gift / Bonus',
+        'Other Income'
+      ];
+      select.innerHTML = '<option value="">Select Category</option>';
+      const catsToUse = incomeCategories.length > 0 ? incomeCategories.map(c => c.name || c) : defaultCats;
+      catsToUse.forEach(name => {
+        select.innerHTML += `<option value="${name}">${name}</option>`;
+      });
+    },
+
     async loadCategories() {
+      const select = document.getElementById('income-category-select');
+      const filterSelect = document.getElementById('filter-income-category');
+      
+      // Ensure defaults immediately so form is never blocked
+      if (select && select.options.length <= 1) {
+        this.populateCategoriesDropdown(select);
+      }
+
       try {
         const res = await window.GharKhataDB.request('/api/categories?type=income');
-        incomeCategories = res.data || [];
-        const select = document.getElementById('income-category-select');
-        if (select) {
-          select.innerHTML = '<option value="">Select Category</option>';
-          incomeCategories.forEach(cat => {
-            select.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
-          });
-        }
-
-        const filterSelect = document.getElementById('filter-income-category');
-        if (filterSelect) {
-          filterSelect.innerHTML = '<option value="all">All Categories</option>';
-          incomeCategories.forEach(cat => {
-            filterSelect.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
-          });
+        if (res.data && res.data.length > 0) {
+          incomeCategories = res.data;
+          if (select) {
+            this.populateCategoriesDropdown(select);
+          }
+          if (filterSelect) {
+            filterSelect.innerHTML = '<option value="all">All Categories</option>';
+            incomeCategories.forEach(cat => {
+              filterSelect.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
+            });
+          }
         }
       } catch (e) {
-        console.warn('Could not load income categories:', e);
+        console.warn('Using default income categories:', e.message);
       }
     },
 
@@ -224,60 +246,109 @@
     },
 
     openAddModal() {
-      editingId = null;
-      document.getElementById('income-modal-title').textContent = 'Record New Income';
-      document.getElementById('income-amount').value = '';
-      document.getElementById('income-description').value = '';
-      document.getElementById('income-date').value = new Date().toISOString().substring(0, 10);
-      document.getElementById('income-time').value = new Date().toTimeString().substring(0, 5);
-      document.getElementById('income-category-select').value = '';
-      document.getElementById('income-payment-mode').value = 'Bank';
-      document.getElementById('income-notes').value = '';
+      const user = window.GharKhataAuth ? window.GharKhataAuth.getUser() : null;
+      if (user && user.role !== 'Dad') {
+        window.GharKhataNotifications.toast('Only Dad has permission to manage Income records.', 'warning');
+        return;
+      }
 
-      document.getElementById('income-modal-backdrop').classList.add('active');
+      editingId = null;
+      const titleEl = document.getElementById('income-modal-title');
+      if (titleEl) titleEl.textContent = 'Record New Income';
+
+      const amtEl = document.getElementById('income-amount');
+      if (amtEl) amtEl.value = '';
+      const descEl = document.getElementById('income-description');
+      if (descEl) descEl.value = '';
+      const dateEl = document.getElementById('income-date');
+      if (dateEl) dateEl.value = new Date().toISOString().substring(0, 10);
+      const timeEl = document.getElementById('income-time');
+      if (timeEl) timeEl.value = new Date().toTimeString().substring(0, 5);
+      
+      const select = document.getElementById('income-category-select');
+      if (select) {
+        if (select.options.length <= 1) {
+          this.populateCategoriesDropdown(select);
+        }
+        select.value = '';
+      }
+
+      const modeEl = document.getElementById('income-payment-mode');
+      if (modeEl) modeEl.value = 'Bank';
+      const notesEl = document.getElementById('income-notes');
+      if (notesEl) notesEl.value = '';
+
+      const backdrop = document.getElementById('income-modal-backdrop');
+      if (backdrop) backdrop.classList.add('active');
     },
 
     openEditModal(id) {
       const item = incomeRecords.find(r => r.id === id);
       if (!item) return;
 
-      editingId = id;
-      document.getElementById('income-modal-title').textContent = 'Edit Income Record';
-      document.getElementById('income-amount').value = item.amount;
-      document.getElementById('income-description').value = item.description;
-      document.getElementById('income-date').value = item.date;
-      document.getElementById('income-time').value = item.time || '';
-      document.getElementById('income-category-select').value = item.category;
-      document.getElementById('income-payment-mode').value = item.payment_mode;
-      document.getElementById('income-notes').value = item.notes || '';
+      const user = window.GharKhataAuth ? window.GharKhataAuth.getUser() : null;
+      if (user && user.role !== 'Dad') {
+        window.GharKhataNotifications.toast('Only Dad has permission to edit Income records.', 'warning');
+        return;
+      }
 
-      document.getElementById('income-modal-backdrop').classList.add('active');
+      editingId = id;
+      const titleEl = document.getElementById('income-modal-title');
+      if (titleEl) titleEl.textContent = 'Edit Income Record';
+
+      const amtEl = document.getElementById('income-amount');
+      if (amtEl) amtEl.value = item.amount;
+      const descEl = document.getElementById('income-description');
+      if (descEl) descEl.value = item.description;
+      const dateEl = document.getElementById('income-date');
+      if (dateEl) dateEl.value = item.date;
+      const timeEl = document.getElementById('income-time');
+      if (timeEl) timeEl.value = item.time || '';
+
+      const select = document.getElementById('income-category-select');
+      if (select) {
+        if (select.options.length <= 1) {
+          this.populateCategoriesDropdown(select);
+        }
+        select.value = item.category;
+      }
+
+      const modeEl = document.getElementById('income-payment-mode');
+      if (modeEl) modeEl.value = item.payment_mode;
+      const notesEl = document.getElementById('income-notes');
+      if (notesEl) notesEl.value = item.notes || '';
+
+      const backdrop = document.getElementById('income-modal-backdrop');
+      if (backdrop) backdrop.classList.add('active');
     },
 
     closeModal() {
-      document.getElementById('income-modal-backdrop').classList.remove('active');
+      const backdrop = document.getElementById('income-modal-backdrop');
+      if (backdrop) backdrop.classList.remove('active');
       editingId = null;
     },
 
     async handleFormSubmit(e) {
       e.preventDefault();
-      const amount = parseFloat(document.getElementById('income-amount').value);
-      const description = document.getElementById('income-description').value.trim();
-      const date = document.getElementById('income-date').value;
-      const time = document.getElementById('income-time').value;
-      const category = document.getElementById('income-category-select').value;
-      const payment_mode = document.getElementById('income-payment-mode').value;
-      const notes = document.getElementById('income-notes').value.trim();
+      const amount = parseFloat(document.getElementById('income-amount')?.value);
+      const description = document.getElementById('income-description')?.value.trim();
+      const date = document.getElementById('income-date')?.value;
+      const time = document.getElementById('income-time')?.value || new Date().toTimeString().substring(0, 5);
+      const category = document.getElementById('income-category-select')?.value;
+      const payment_mode = document.getElementById('income-payment-mode')?.value || 'Bank';
+      const notes = document.getElementById('income-notes')?.value.trim();
 
       if (!amount || amount <= 0 || !description || !date || !category) {
-        window.GharKhataNotifications.toast('Please fill all required fields.', 'error');
+        window.GharKhataNotifications.toast('Please fill all required fields (Amount, Description, Category, Date).', 'error');
         return;
       }
 
       const payload = { amount, description, date, time, category, payment_mode, notes };
       const submitBtn = document.getElementById('income-submit-btn');
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Saving...';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
+      }
 
       try {
         if (editingId) {
@@ -295,6 +366,8 @@
         }
 
         this.closeModal();
+
+        // Broadcast to Firebase if available
         if (window.GharKhataFirebase && window.GharKhataFirebase.publishSyncEvent) {
           const user = window.GharKhataAuth.getUser();
           if (user && user.household_id) {
@@ -306,12 +379,22 @@
             });
           }
         }
-        await this.loadIncomes(false);
+
+        // Trigger local sync across all components on current page
+        window.dispatchEvent(new CustomEvent('gharkhata:sync', {
+          detail: { type: editingId ? 'INCOME_UPDATED' : 'INCOME_ADDED', amount, description, category }
+        }));
+
+        if (document.getElementById('income-list-container')) {
+          await this.loadIncomes(false);
+        }
       } catch (err) {
         window.GharKhataNotifications.toast(err.message, 'error');
       } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Save Income';
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Save Income';
+        }
       }
     },
 
@@ -357,7 +440,7 @@
   window.GharKhataIncome = IncomeApp;
 
   document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('income-list-container')) {
+    if (document.getElementById('income-list-container') || document.getElementById('income-modal-backdrop') || document.getElementById('btn-add-income')) {
       IncomeApp.init();
     }
   });
