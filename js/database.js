@@ -10,6 +10,11 @@
   const DB = {
     async request(endpoint, options = {}) {
       const token = window.GharKhataAuth ? window.GharKhataAuth.getToken() : null;
+      const apiBase = (window.GharKhataAuth && typeof window.GharKhataAuth.getApiBase === 'function')
+        ? window.GharKhataAuth.getApiBase()
+        : '';
+      const fullUrl = endpoint.startsWith('http') ? endpoint : (apiBase + endpoint);
+
       const headers = {
         'Content-Type': 'application/json',
         ...(options.headers || {})
@@ -20,18 +25,23 @@
       }
 
       try {
-        const response = await fetch(endpoint, {
+        const response = await fetch(fullUrl, {
           ...options,
           headers
         });
 
+        // Parse response safely
+        let data = {};
+        const text = await response.text();
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          data = { success: false, message: response.statusText || 'Unexpected server response.' };
+        }
+
         // If unauthorized or session expired
         if (response.status === 401) {
-          let errorMsg = 'Your session has expired. Please log in again.';
-          try {
-            const errData = await response.json();
-            if (errData && errData.message) errorMsg = errData.message;
-          } catch (e) {}
+          let errorMsg = data.message || 'Your session has expired. Please log in again.';
 
           const page = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
           const publicPages = ['login', 'register', 'index'];
@@ -48,7 +58,6 @@
           throw new Error(errorMsg);
         }
 
-        const data = await response.json();
         if (!response.ok || !data.success) {
           throw new Error(data.message || 'Request failed.');
         }
@@ -59,6 +68,9 @@
         if (!navigator.onLine && options.method && options.method !== 'GET') {
           this.enqueueOfflineAction(endpoint, options);
           throw new Error('You are currently offline. This transaction has been queued and will sync automatically when reconnected.');
+        }
+        if (error.name === 'TypeError' || error.message.toLowerCase().includes('fetch')) {
+          throw new Error('Cannot connect to the GharKhata server. Please ensure the backend server is running.');
         }
         throw error;
       }

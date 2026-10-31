@@ -73,14 +73,45 @@
       return false;
     },
 
+    getApiBase() {
+      if (window.location.protocol === 'file:') {
+        return 'http://localhost:3000';
+      }
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        if (window.location.port && !['3000', '80', '443'].includes(window.location.port)) {
+          return 'http://localhost:3000';
+        }
+      }
+      return '';
+    },
+
+    async safeFetch(endpoint, options = {}) {
+      const fullUrl = endpoint.startsWith('http') ? endpoint : (this.getApiBase() + endpoint);
+      try {
+        const response = await fetch(fullUrl, options);
+        let data = {};
+        const text = await response.text();
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          data = { success: false, message: response.statusText || 'Unexpected server response.' };
+        }
+        return { response, data };
+      } catch (err) {
+        if (err.name === 'TypeError' || err.message.toLowerCase().includes('fetch')) {
+          throw new Error('Cannot connect to the GharKhata server. Please verify the backend server is running (e.g. run "npm start" on port 3000) or check your connection.');
+        }
+        throw err;
+      }
+    },
+
     async login(email, password) {
-      const response = await fetch('/api/auth/login', {
+      const { response, data } = await this.safeFetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
 
-      const data = await response.json();
       if (!response.ok || !data.success) {
         throw new Error(data.message || 'Login failed. Please check your credentials.');
       }
@@ -90,13 +121,12 @@
     },
 
     async register(registrationData) {
-      const response = await fetch('/api/auth/register', {
+      const { response, data } = await this.safeFetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(registrationData)
       });
 
-      const data = await response.json();
       if (!response.ok || !data.success) {
         throw new Error(data.message || 'Registration failed.');
       }
@@ -112,7 +142,7 @@
 
     async changePassword(current_password, new_password, confirm_new_password) {
       const token = this.getToken();
-      const response = await fetch('/api/auth/change-password', {
+      const { response, data } = await this.safeFetch('/api/auth/change-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -121,7 +151,6 @@
         body: JSON.stringify({ current_password, new_password, confirm_new_password })
       });
 
-      const data = await response.json();
       if (!response.ok || !data.success) {
         throw new Error(data.message || 'Failed to update password.');
       }
@@ -133,10 +162,9 @@
       if (!token) return null;
 
       try {
-        const response = await fetch('/api/auth/me', {
+        const { data } = await this.safeFetch('/api/auth/me', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        const data = await response.json();
         if (data.success && data.user) {
           this.updateUserProfile(data.user);
           return data;

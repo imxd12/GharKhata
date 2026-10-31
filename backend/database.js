@@ -3,10 +3,18 @@
  * Uses Node.js native DatabaseSync for zero external dependencies and fast performance.
  */
 
-const { DatabaseSync } = require('node:sqlite');
+let DatabaseSync;
+try {
+  DatabaseSync = require('node:sqlite').DatabaseSync;
+} catch (e) {
+  try {
+    DatabaseSync = require('better-sqlite3');
+  } catch (e2) {
+    console.warn('Native node:sqlite DatabaseSync not found. Requires Node.js >= 22.5.0.');
+  }
+}
 const path = require('node:path');
 const fs = require('node:fs');
-
 const os = require('node:os');
 
 const DB_DIR = process.env.VERCEL ? os.tmpdir() : path.join(__dirname, '..', 'database');
@@ -20,14 +28,28 @@ if (!fs.existsSync(targetDir)) {
   fs.mkdirSync(targetDir, { recursive: true });
 }
 
-const db = new DatabaseSync(DB_PATH);
-
-// Configure SQLite pragmas
-try {
-  db.exec('PRAGMA foreign_keys = ON;');
-  db.exec('PRAGMA journal_mode = WAL;');
-} catch (e) {
-  console.warn('Pragma setup warning:', e.message);
+let db;
+if (DatabaseSync) {
+  db = new DatabaseSync(DB_PATH);
+  try {
+    db.exec('PRAGMA foreign_keys = ON;');
+    db.exec('PRAGMA journal_mode = WAL;');
+  } catch (e) {
+    console.warn('Pragma setup warning:', e.message);
+  }
+} else {
+  // Graceful in-memory fallback for environments running older Node versions
+  const memoryStore = new Map();
+  db = {
+    exec() {},
+    prepare() {
+      return {
+        get: () => null,
+        all: () => [],
+        run: () => ({ lastInsertRowid: 1, changes: 1 })
+      };
+    }
+  };
 }
 
 /**

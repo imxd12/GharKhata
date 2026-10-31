@@ -66,7 +66,10 @@
 
         <div class="form-group">
           <label class="form-label" for="login-password">Password <span class="required">*</span></label>
-          <input type="password" id="login-password" class="form-control" placeholder="Enter your password" required autocomplete="current-password" />
+          <div class="password-input-wrapper">
+            <input type="password" id="login-password" class="form-control" placeholder="Enter your password" required autocomplete="current-password" />
+            <button type="button" class="password-toggle-btn" title="Toggle password visibility" onclick="togglePasswordVisibility('login-password', this)">👁️</button>
+          </div>
         </div>
 
         <button type="submit" id="login-submit-btn" class="btn btn-primary" style="width:100%; margin-top:8px; padding:12px;">
@@ -83,13 +86,42 @@
   <script src="js/theme.js"></script>
   <script src="js/auth.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // Redirect if already logged in
-      if (window.GharKhataAuth.redirectIfAuthenticated()) return;
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🙈';
+        btn.title = 'Hide password';
+      } else {
+        input.type = 'password';
+        btn.textContent = '👁️';
+        btn.title = 'Show password';
+      }
+    }
 
-      const form = document.getElementById('login-form');
+    document.addEventListener('DOMContentLoaded', () => {
       const alertBox = document.getElementById('login-alert');
+      const form = document.getElementById('login-form');
       const submitBtn = document.getElementById('login-submit-btn');
+
+      // Check query parameters
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('switch') === '1' || params.get('logout') === '1') {
+        if (window.GharKhataAuth) window.GharKhataAuth.clearSession();
+        if (params.get('logout') === '1') {
+          alertBox.textContent = 'You have successfully signed out of your account.';
+          alertBox.className = 'auth-alert success';
+          alertBox.style.display = 'block';
+        }
+      } else if (params.get('registered') === '1') {
+        alertBox.textContent = 'Registration completed! Please sign in with your email and password.';
+        alertBox.className = 'auth-alert success';
+        alertBox.style.display = 'block';
+      } else {
+        // Redirect if already authenticated
+        if (window.GharKhataAuth && window.GharKhataAuth.redirectIfAuthenticated()) return;
+      }
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -99,6 +131,13 @@
         const email = document.getElementById('login-email').value.trim();
         const password = document.getElementById('login-password').value;
 
+        if (!email || !password) {
+          alertBox.textContent = 'Please enter both your email and password.';
+          alertBox.className = 'auth-alert error';
+          alertBox.style.display = 'block';
+          return;
+        }
+
         submitBtn.disabled = true;
         submitBtn.textContent = 'Signing in...';
 
@@ -106,7 +145,7 @@
           await window.GharKhataAuth.login(email, password);
           window.location.href = 'dashboard.html';
         } catch (err) {
-          alertBox.textContent = err.message;
+          alertBox.textContent = err.message || 'Login failed. Please check your credentials.';
           alertBox.className = 'auth-alert error';
           alertBox.style.display = 'block';
         } finally {

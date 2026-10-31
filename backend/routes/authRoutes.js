@@ -68,7 +68,9 @@ router.post('/register', (req, res) => {
       });
     }
 
-    let targetHouseholdId = household_id ? household_id.trim().toUpperCase() : null;
+    let targetHouseholdId = (household_id && typeof household_id === 'string' && household_id.trim().length > 0)
+      ? household_id.trim().toUpperCase() 
+      : null;
     const now = new Date().toISOString();
 
     // 3. Handle Household Creation vs Joining

@@ -1,8 +1,8 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.js" },
-    { "source": "/uploads/(.*)", "destination": "/api/index.js" },
+    { "source": "/api/(.*)", "destination": "/api/index.js?path=$1" },
+    { "source": "/uploads/(.*)", "destination": "/api/index.js?path=uploads/$1" },
     { "source": "/css/(.*)", "destination": "/css/$1" },
     { "source": "/js/(.*)", "destination": "/js/$1" },
     { "source": "/assets/(.*)", "destination": "/assets/$1" },

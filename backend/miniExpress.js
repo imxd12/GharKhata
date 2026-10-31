@@ -169,6 +169,27 @@ class MiniApp extends MiniRouter {
 
     // 4. Parse request body for POST/PUT/PATCH
     if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
+      // If the body was already parsed by an upstream runtime (e.g. Vercel serverless functions)
+      if (req.body !== undefined && req.body !== null) {
+        if (typeof req.body === 'string') {
+          try {
+            req.body = JSON.parse(req.body);
+          } catch (e) {
+            try {
+              const parsedForm = new URLSearchParams(req.body);
+              req.body = Object.fromEntries(parsedForm.entries());
+            } catch (e2) {}
+          }
+        }
+        return this.dispatch(req, res);
+      }
+
+      // If the stream has already completed reading before reaching miniExpress
+      if (req.readableEnded) {
+        req.body = req.body || {};
+        return this.dispatch(req, res);
+      }
+
       let bodyData = '';
       req.on('data', chunk => {
         bodyData += chunk;
@@ -193,12 +214,12 @@ class MiniApp extends MiniRouter {
             req.body = bodyData;
           }
         } else {
-          req.body = {};
+          req.body = req.body || {};
         }
         this.dispatch(req, res);
       });
     } else {
-      req.body = {};
+      req.body = req.body || {};
       this.dispatch(req, res);
     }
   }
